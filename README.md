@@ -3,7 +3,7 @@
 Aplicación web PWA para promover el turismo en Nicaragua.  
 Desarrollada como proyecto personal y publicada en GitHub Pages.
 
-## 🚀 Demo en línea.
+## 🚀 Demo en línea
 👉 [ExploraNica](https://jesus8895rodriguez-cpu.github.io/ExploraNica/)
 
 ## 📂 Tecnologías usadas
