@@ -21,6 +21,9 @@ Desarrollada como proyecto personal y publicada en GitHub Pages.
 ## 🖼️ Capturas de pantalla
 Aquí podés ver cómo luce la aplicación ExploraNica:
 
-![Pantalla principal](https://github.com/jesus8895rodriguez-cpu/exploranica/blob/main/menú-principal_20260722-123419.jpg)
-![Vista móvil](https://github.com/jesus8895rodriguez-cpu/exploranica/blob/main/en-sitio_20260722-123428.jpg)
-![Menú principal](https://github.com/jesus8895rodriguez-cpu/exploranica/blob/main/eventos-proximos_20260722-123608.jpg)
+## 🖼️ Capturas de pantalla
+Aquí podés ver cómo luce la aplicación ExploraNica:
+
+![Pantalla principal](https://github.com/jesus8895rodriguez-cpu/exploranica/blob/main/Screenshot_20260722-123419.jpg)
+![Vista móvil](https://github.com/jesus8895rodriguez-cpu/exploranica/blob/main/Screenshot_20260722-123428.jpg)
+![Menú principal](https://github.com/jesus8895rodriguez-cpu/exploranica/blob/main/Screenshot_20260722-123608.jpg)
