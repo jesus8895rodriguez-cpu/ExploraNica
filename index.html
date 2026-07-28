@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
-<meta name="theme-color" content="#1D9E75"/>
+<meta name="theme-color" content="#C1502E"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
 <meta name="apple-mobile-web-app-title" content="ExploraNica"/>
@@ -24,10 +24,10 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
-:root{--green:#1D9E75;--green-dark:#0F6E56;--green-bg:#e8f8f2;--amber:#EF9F27;--red:#E24B4A;--bg:#f7f9f8;--surface:#ffffff;--text:#111;--text2:#555;--text3:#999;--border:rgba(0,0,0,0.1);--radius:14px;--shadow:0 2px 12px rgba(0,0,0,0.07);--skel-a:#e9edeb;--skel-b:#f6f8f7}
-@media(prefers-color-scheme:dark){:root{--bg:#0d1a16;--surface:#1a2e26;--text:#f0f0f0;--text2:#aaa;--text3:#666;--border:rgba(255,255,255,0.1);--green-bg:#0d2e22;--shadow:0 2px 12px rgba(0,0,0,0.3);--skel-a:#16261f;--skel-b:#20362c}}
-:root[data-theme="dark"]{--bg:#0d1a16;--surface:#1a2e26;--text:#f0f0f0;--text2:#aaa;--text3:#666;--border:rgba(255,255,255,0.1);--green-bg:#0d2e22;--shadow:0 2px 12px rgba(0,0,0,0.3);--skel-a:#16261f;--skel-b:#20362c}
-:root[data-theme="light"]{--bg:#f7f9f8;--surface:#ffffff;--text:#111;--text2:#555;--text3:#999;--border:rgba(0,0,0,0.1);--green-bg:#e8f8f2;--shadow:0 2px 12px rgba(0,0,0,0.07);--skel-a:#e9edeb;--skel-b:#f6f8f7}
+:root{--green:#C1502E;--green-dark:#8F3A1E;--green-bg:#FAECE7;--amber:#EF9F27;--red:#E24B4A;--bg:#f7f9f8;--surface:#ffffff;--text:#111;--text2:#555;--text3:#999;--border:rgba(0,0,0,0.1);--radius:14px;--shadow:0 2px 12px rgba(0,0,0,0.07);--skel-a:#e9edeb;--skel-b:#f6f8f7}
+@media(prefers-color-scheme:dark){:root{--bg:#0d1a16;--surface:#1a2e26;--text:#f0f0f0;--text2:#aaa;--text3:#666;--border:rgba(255,255,255,0.1);--green-bg:#2e1810;--shadow:0 2px 12px rgba(0,0,0,0.3);--skel-a:#16261f;--skel-b:#20362c}}
+:root[data-theme="dark"]{--bg:#0d1a16;--surface:#1a2e26;--text:#f0f0f0;--text2:#aaa;--text3:#666;--border:rgba(255,255,255,0.1);--green-bg:#2e1810;--shadow:0 2px 12px rgba(0,0,0,0.3);--skel-a:#16261f;--skel-b:#20362c}
+:root[data-theme="light"]{--bg:#f7f9f8;--surface:#ffffff;--text:#111;--text2:#555;--text3:#999;--border:rgba(0,0,0,0.1);--green-bg:#FAECE7;--shadow:0 2px 12px rgba(0,0,0,0.07);--skel-a:#e9edeb;--skel-b:#f6f8f7}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 html{scrollbar-color:var(--green) var(--bg);scrollbar-width:thin}
@@ -53,7 +53,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible,
 
 /* HEADER */
 header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:sticky;top:0;z-index:100}
-.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;flex-wrap:wrap;row-gap:8px}
 .logo{font-size:20px;font-weight:700;color:#fff;letter-spacing:-0.3px}
 .logo span{opacity:0.75}
 .btn-admin{background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);color:#fff;border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer}
@@ -62,6 +62,9 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .admin-actions{display:flex;gap:8px;align-items:center}
 .badge-admin{background:rgba(255,255,255,0.2);color:#fff;font-size:12px;padding:3px 10px;border-radius:20px}
 .btn-logout{background:transparent;border:none;color:rgba(255,255,255,0.8);font-size:13px;cursor:pointer;padding:6px}
+.menu-item-btn{width:100%;text-align:left;padding:13px 16px;border-radius:12px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.menu-item-btn:active{background:var(--bg)}
+.menu-item-danger{color:var(--red)}
 
 /* SEARCH */
 .search-wrap{background:var(--green);padding:0 16px 14px}
@@ -84,6 +87,7 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .chip.chip-surprise{background:var(--amber);color:#fff;border-color:var(--amber);font-weight:700}
 .chip.chip-events{background:var(--green-dark);color:#fff;border-color:var(--green-dark);font-weight:700}
 .chip.chip-map{background:#2E6FD9;color:#fff;border-color:#2E6FD9;font-weight:700}
+.chip.chip-lang{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
 .sort-select{margin-left:auto;font-size:12px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:inherit;flex-shrink:0}
 .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
 
@@ -213,7 +217,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 
 /* MAP */
 #leafletMap{height:65vh;min-height:380px;border-radius:12px;overflow:hidden;background:var(--bg)}
-.leaflet-popup-content b{color:#1D9E75}
+.leaflet-popup-content b{color:#C1502E}
 
 /* WEATHER */
 .weather-box{display:none;align-items:center;gap:8px;background:var(--green-bg);border-radius:20px;padding:6px 14px;margin-bottom:12px;width:fit-content;font-size:13px}
@@ -225,7 +229,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .comments-section{margin-top:4px}
 .comment-tabs{display:flex;gap:8px;margin-bottom:10px}
 .ctab{flex:1;padding:9px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer}
-.ctab.active[id="ctab-pos"]{background:#e8f8f2;border-color:var(--green);color:var(--green-dark)}
+.ctab.active[id="ctab-pos"]{background:#FAECE7;border-color:var(--green);color:var(--green-dark)}
 .ctab.active[id="ctab-neg"]{background:#fdeaea;border-color:var(--red);color:var(--red)}
 .comment-input{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-size:14px;color:var(--text);outline:none;font-family:inherit;height:70px;resize:none;margin-bottom:8px}
 .comment-input:focus{border-color:var(--green)}
@@ -236,7 +240,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .comment-card.neg{border-left:3px solid var(--red)}
 .comment-card .ctop{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
 .comment-card .ctag{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px}
-.comment-card .ctag.pos{background:#e8f8f2;color:var(--green-dark)}
+.comment-card .ctag.pos{background:#FAECE7;color:var(--green-dark)}
 .comment-card .ctag.neg{background:#fdeaea;color:var(--red)}
 .comment-card .ctext{font-size:13.5px;color:var(--text2);line-height:1.5}
 .comment-card .cdel{background:none;border:none;color:var(--text3);font-size:12px;cursor:pointer}
@@ -343,19 +347,19 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div class="sheet-dept" id="vm-dept"></div>
       <div class="weather-box" id="vm-weather"></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn-share" onclick="sharePlace()">📤 Compartir este lugar</button>
+        <button class="btn-share" id="share-btn" onclick="sharePlace()">📤 Compartir este lugar</button>
         <button class="btn-share" id="itin-btn" style="background:var(--amber);border-color:var(--amber);color:#fff" onclick="toggleItineraryItem()">🗺️ Agregar al itinerario</button>
       </div>
       <p class="sheet-desc" id="vm-desc"></p>
 
       <div id="vm-infobox" class="infobox"></div>
 
-      <p class="rate-label">¿Cómo valorás este lugar?</p>
+      <p class="rate-label" id="rate-question">¿Cómo valorás este lugar?</p>
       <div class="big-stars" id="vm-stars"></div>
-      <button class="btn-rate" onclick="submitRating()">Guardar valoración ⭐</button>
+      <button class="btn-rate" id="rate-btn" onclick="submitRating()">Guardar valoración ⭐</button>
 
       <div class="comments-section">
-        <p class="rate-label" style="margin-top:24px">Comentarios de turistas</p>
+        <p class="rate-label" id="comments-label" style="margin-top:24px">Comentarios de turistas</p>
         <div id="commentLoginPrompt" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--green-dark)">
           👤 <a href="#" onclick="openAuthModal();return false" style="color:var(--green-dark);font-weight:700;text-decoration:underline">Decinos tu nombre</a> para que aparezca en tu comentario
         </div>
@@ -364,7 +368,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
           <button class="ctab" id="ctab-neg" onclick="setCommentType('neg')">👎 Negativo</button>
         </div>
         <textarea id="newComment" class="comment-input" placeholder="Escribí tu experiencia en este lugar..."></textarea>
-        <button class="btn-comment" onclick="submitComment()">Publicar comentario</button>
+        <button class="btn-comment" id="comment-btn" onclick="submitComment()">Publicar comentario</button>
         <div id="commentsList" class="comments-list"></div>
       </div>
     </div>
@@ -381,6 +385,20 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       </div>
       <div id="itineraryList"></div>
       <div id="itinerarySummary"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN MENU MODAL -->
+<div class="overlay edit-overlay" id="adminMenuOverlay">
+  <div class="sheet edit-sheet login-sheet">
+    <div class="sheet-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:8px">⚙️</div>
+      <h2 style="text-align:center;margin-bottom:20px">Panel de Administrador</h2>
+      <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openStatsPanel()">📊 Ver estadísticas</button>
+      <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');restoreDefaults()">↺ Restaurar lugares por defecto</button>
+      <button class="menu-item-btn menu-item-danger" onclick="closeOverlay('adminMenuOverlay');logout()">🚪 Cerrar sesión</button>
+      <button class="btn-cancel" style="width:100%" onclick="closeOverlay('adminMenuOverlay')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -568,14 +586,82 @@ const DEFAULT_PLACES = [
   {id:14,name:"Reserva Miraflor",dept:"Estelí",emoji:"🦋",lat:13.21,lng:-86.28,imgs:[],desc:"Reserva natural comunitaria con cascadas, flora y fauna únicas de la región norte.",address:"Comunidad Miraflor, Estelí",emergency:"118 (Policía) / 128 (Bomberos)",info:"Turismo comunitario. Hospedaje rural disponible."},
   {id:15,name:"Peñas Blancas",dept:"Jinotega",emoji:"🌄",lat:13.2527,lng:-85.6640,imgs:[],desc:"Reserva natural en las montañas del norte con vistas espectaculares y biodiversidad única.",address:"Macizo de Peñas Blancas, Jinotega",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clima frío, llevar ropa abrigada."},
   {id:16,name:"Playa Popoyo",dept:"Rivas",emoji:"🌅",lat:11.4731,lng:-86.1270,imgs:[],desc:"Playa reconocida internacionalmente como uno de los mejores spots de surf del país.",address:"Tola, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Buen oleaje todo el año. Hospedajes frente al mar."},
-  {id:17,name:"Volcán Mombacho",dept:"Granada",emoji:"🌋",lat:11.8261,lng:-85.9675,imgs:[],desc:"Imponente reserva natural con bosque nuboso, senderos sobre cráteres extintos y vistas panorámicas a las Isletas de Granada.",address:"Reserva Natural Volcán Mombacho, Granada",emergency:"118 (Policía) / 115 (Bomberos) / 128 (Cruz Roja)",info:"Acceso con vehículos 4x4 o senderismo. Cuenta con centro de visitantes, miradores y tours de tirolesa (canopy)."}
-  ];
+];
 
 const DEFAULT_EVENTS = [
   {id:1,name:"Bajada de Santo Domingo de Guzmán",date:"2026-08-01",dept:"Managua",emoji:"⛪",desc:"Procesión tradicional desde Las Sierritas hasta el centro de Managua. Una de las fiestas patronales más concurridas de Nicaragua.",lat:12.136,lng:-86.251},
   {id:2,name:"Fiesta de San Jerónimo",date:"2026-09-30",dept:"Masaya",emoji:"🎉",desc:"Día principal de la fiesta patronal más larga de Nicaragua, con la procesión de Tata Chombo por las calles de Masaya.",lat:11.967,lng:-86.100},
   {id:3,name:"La Gritería",date:"2026-12-07",dept:"León",emoji:"🎆",desc:"Celebración religiosa y folklórica en honor a la Inmaculada Concepción de María, con altares, cánticos y pólvora en todo el país.",lat:12.43498,lng:-86.8781},
 ];
+
+/* ---- IDIOMA (ES/EN) ----
+   Traducción estática de la interfaz principal y del contenido de los 16
+   lugares y 3 eventos por defecto. Los lugares/eventos que agregue el admin
+   y los comentarios de usuarios NO se traducen automáticamente — eso
+   requeriría una API de traducción paga (Google Translate/DeepL). */
+const PLACE_TRANSLATIONS_EN = {
+  1:{name:"León Cathedral",desc:"Colonial baroque cathedral, a UNESCO World Heritage Site. The largest in Central America."},
+  2:{name:"Cerro Negro Volcano",desc:"Active volcano famous for volcano boarding. One of the youngest volcanoes in the Americas."},
+  3:{name:"Apoyo Lagoon",desc:"Volcanic lagoon with crystal-clear waters, perfect for swimming, kayaking, and snorkeling."},
+  4:{name:"Ometepe Island",desc:"Island formed by two volcanoes in Lake Cocibolca. A UNESCO Biosphere Reserve."},
+  5:{name:"Granada Historic Center",desc:"Colonial city with colorful architecture, historic churches, and local cuisine."},
+  6:{name:"Somoto Canyon",desc:"Impressive ancient rock canyon, ideal for trekking, swimming, and rappelling."},
+  7:{name:"Indio Maíz Reserve",desc:"One of Central America's most biodiverse rainforests. Home to jaguars and turtles."},
+  8:{name:"San Juan del Sur",desc:"Picturesque bay famous for surfing, sunsets, and nightlife on the Pacific coast."},
+  9:{name:"Masaya Volcano",desc:"Active volcano with a visible lava lake at night. One of the few in the world."},
+  10:{name:"Masaya Market",desc:"Nicaragua's largest craft market. Hammocks, pottery, and traditional handicrafts."},
+  11:{name:"Corn Island",desc:"Caribbean island with white sand beaches, coral reefs, and turquoise waters."},
+  12:{name:"Lake Xolotlán",desc:"Lake Managua with a renovated boardwalk, perfect for enjoying the capital's sunset."},
+  13:{name:"León Viejo Ruins",desc:"Nicaragua's first colonial ruins, declared a UNESCO World Heritage Site."},
+  14:{name:"Miraflor Reserve",desc:"Community-run nature reserve with waterfalls and unique flora and fauna of the northern region."},
+  15:{name:"Peñas Blancas",desc:"Nature reserve in the northern mountains with spectacular views and unique biodiversity."},
+  16:{name:"Popoyo Beach",desc:"Internationally recognized beach, one of the country's best surf spots."}
+};
+const EVENT_TRANSLATIONS_EN = {
+  1:{name:"Descent of Santo Domingo de Guzmán",desc:"Traditional procession from Las Sierritas to downtown Managua. One of Nicaragua's most crowded patron saint festivals."},
+  2:{name:"Feast of San Jerónimo",desc:"Main day of Nicaragua's longest patron saint festival, with the Tata Chombo procession through the streets of Masaya."},
+  3:{name:"La Gritería",desc:"Religious and folk celebration honoring the Immaculate Conception, with altars, chants, and fireworks nationwide."}
+};
+const UI_STRINGS_EN = {
+  "Buscar lugar o departamento...":"Search for a place or department...",
+  "🎲 Sorpréndeme":"🎲 Surprise me",
+  "📅 Eventos":"📅 Events",
+  "🌍 Mapa":"🌍 Map",
+  "❤️ Favoritos":"❤️ Favorites",
+  "Todos":"All",
+  "Sin valorar":"No ratings yet",
+  "📤 Compartir este lugar":"📤 Share this place",
+  "🗺️ Agregar al itinerario":"🗺️ Add to itinerary",
+  "✅ En tu itinerario":"✅ In your itinerary",
+  "🧭 Cómo llegar":"🧭 Get directions",
+  "¿Cómo valorás este lugar?":"How would you rate this place?",
+  "Guardar valoración ⭐":"Save rating ⭐",
+  "Comentarios de turistas":"Traveler comments",
+  "Publicar comentario":"Post comment",
+  "Todavía no hay comentarios. ¡Sé el primero!":"No comments yet. Be the first!"
+};
+function t(str){ return currentLang==="en" ? (UI_STRINGS_EN[str]||str) : str; }
+function tPlaceName(p){ return (currentLang==="en" && PLACE_TRANSLATIONS_EN[p.id]) ? PLACE_TRANSLATIONS_EN[p.id].name : p.name; }
+function tPlaceDesc(p){ return (currentLang==="en" && PLACE_TRANSLATIONS_EN[p.id]) ? PLACE_TRANSLATIONS_EN[p.id].desc : p.desc; }
+function tEventName(e){ return (currentLang==="en" && EVENT_TRANSLATIONS_EN[e.id]) ? EVENT_TRANSLATIONS_EN[e.id].name : e.name; }
+function tEventDesc(e){ return (currentLang==="en" && EVENT_TRANSLATIONS_EN[e.id]) ? EVENT_TRANSLATIONS_EN[e.id].desc : e.desc; }
+function toggleLanguage(){
+  currentLang = currentLang==="es" ? "en" : "es";
+  try{ localStorage.setItem("exploranica_lang", currentLang); }catch(e){}
+  const si = document.getElementById("searchInput");
+  if(si) si.placeholder = t("Buscar lugar o departamento...");
+  applyModalTranslations();
+  updateItinBtn();
+  render();
+}
+function loadLanguage(){
+  try{
+    const saved = localStorage.getItem("exploranica_lang");
+    if(saved==="en"||saved==="es") currentLang = saved;
+  }catch(e){}
+  const si = document.getElementById("searchInput");
+  if(si) si.placeholder = t("Buscar lugar o departamento...");
+}
 
 let places=[], ratings={}, comments={}, isAdmin=false;
 let selectedDept="Todos", searchQ="";
@@ -585,6 +671,7 @@ let deferredPrompt=null, installDismissed=false;
 let fsReady=false;
 let currentUser=null, authMode="login";
 let statsAnimatedOnce=false;
+let currentLang = "es";
 let sortBy="default";
 let favorites=[], showFavsOnly=false;
 
@@ -760,6 +847,9 @@ function getComments(id){return comments[id]||[];}
 function getPosNeg(id){const c=getComments(id);return{pos:c.filter(x=>x.type==="pos").length,neg:c.filter(x=>x.type==="neg").length};}
 
 /* ---- PANEL DE ESTADÍSTICAS (admin) ---- */
+function openAdminMenu(){
+  document.getElementById("adminMenuOverlay").classList.add("open");
+}
 function openStatsPanel(){
   renderStatsPanel();
   document.getElementById("statsOverlay").classList.add("open");
@@ -937,7 +1027,7 @@ function getItineraryTotalHours(){
 function updateItinBtn(){
   const btn = document.getElementById("itin-btn");
   if(!btn) return;
-  btn.textContent = isInItinerary(viewingId) ? "✅ En tu itinerario" : "🗺️ Agregar al itinerario";
+  btn.textContent = isInItinerary(viewingId) ? t("✅ En tu itinerario") : t("🗺️ Agregar al itinerario");
 }
 function openItinerary(){
   renderItineraryModal();
@@ -1013,20 +1103,20 @@ function renderEventsList(){
   const today = new Date(); today.setHours(0,0,0,0);
   let html;
   if(sorted.length===0){
-    html = `<div class="empty"><div class="big">📅</div><p>No hay eventos programados</p></div>`;
+    html = `<div class="empty"><div class="big">📅</div><p>${currentLang==="en"?"No events scheduled":"No hay eventos programados"}</p></div>`;
   } else {
     html = sorted.map(e=>{
       const d = new Date(e.date+"T00:00:00");
       const isPast = d < today;
-      const dateStr = d.toLocaleDateString("es-NI",{day:"numeric",month:"long",year:"numeric"});
+      const dateStr = d.toLocaleDateString(currentLang==="en"?"en-US":"es-NI",{day:"numeric",month:"long",year:"numeric"});
       const adminBtns = isAdmin ? `<div class="event-admin-btns"><button onclick="openEditEvent(${e.id})" title="Editar">✏️</button><button onclick="deleteEvent(${e.id})" title="Eliminar">🗑️</button></div>` : "";
       return `<div class="event-item ${isPast?'event-past':''}">
         <div class="event-emoji">${e.emoji}</div>
         <div class="event-info">
-          <b>${e.name}</b>
-          <span class="event-date">📅 ${dateStr}${isPast?' · Pasado':''}</span>
+          <b>${tEventName(e)}</b>
+          <span class="event-date">📅 ${dateStr}${isPast?(currentLang==="en"?' · Past':' · Pasado'):''}</span>
           <span class="event-dept">📍 ${e.dept}</span>
-          <p>${e.desc}</p>
+          <p>${tEventDesc(e)}</p>
         </div>
         ${adminBtns}
       </div>`;
@@ -1114,7 +1204,7 @@ function initMap(){
     places.forEach(p=>{
       if(typeof p.lat!=="number" || typeof p.lng!=="number") return;
       const marker = L.marker([p.lat, p.lng]).addTo(leafletMapInstance);
-      marker.bindPopup(`<b>${p.emoji} ${p.name}</b><br>${p.dept}<br><button onclick="closeOverlay('mapOverlay');openView(${p.id})" style="margin-top:6px;background:#1D9E75;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px">Ver detalles</button>`);
+      marker.bindPopup(`<b>${p.emoji} ${tPlaceName(p)}</b><br>${p.dept}<br><button onclick="closeOverlay('mapOverlay');openView(${p.id})" style="margin-top:6px;background:#C1502E;color:#fff;border:none;border-radius:6px;padding:6px 10px;cursor:pointer;font-size:12px">${currentLang==="en"?"View details":"Ver detalles"}</button>`);
       leafletMarkers.push(marker);
     });
     const eventIcon = L.divIcon({
@@ -1125,8 +1215,8 @@ function initMap(){
       if(typeof ev.lat!=="number" || typeof ev.lng!=="number") return;
       const marker = L.marker([ev.lat, ev.lng], {icon:eventIcon}).addTo(leafletMapInstance);
       const d = new Date(ev.date+"T00:00:00");
-      const dateStr = d.toLocaleDateString("es-NI",{day:"numeric",month:"long",year:"numeric"});
-      marker.bindPopup(`<b>${ev.emoji} ${ev.name}</b><br>📅 ${dateStr}<br>📍 ${ev.dept}`);
+      const dateStr = d.toLocaleDateString(currentLang==="en"?"en-US":"es-NI",{day:"numeric",month:"long",year:"numeric"});
+      marker.bindPopup(`<b>${ev.emoji} ${tEventName(ev)}</b><br>📅 ${dateStr}<br>📍 ${ev.dept}`);
       leafletMarkers.push(marker);
     });
   }catch(e){
@@ -1236,7 +1326,7 @@ function render(){
   const filtered=applySort(getFilteredPlaces());
 
   const adminHtml = isAdmin
-    ?`<div class="admin-actions"><span class="badge-admin">⚙️ Admin</span><button class="btn-logout" onclick="openStatsPanel()" title="Ver estadísticas">📊</button><button class="btn-logout" onclick="restoreDefaults()" title="Restaurar lugares por defecto">↺</button><button class="btn-logout" onclick="logout()">Salir</button></div>`
+    ?`<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openAdminMenu()">⚙️ Admin</button>`
     :`<button class="btn-admin" onclick="openLogin()">🔐 Admin</button>`;
   const userHtml = currentUser
     ?`<button class="btn-admin" onclick="openUserMenu()">👤 ${currentUser.name}</button>`
@@ -1248,10 +1338,15 @@ function render(){
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
 
-  document.getElementById("filters").innerHTML=`<div class="chip chip-surprise" onclick="surpriseMe()">🎲 Sorpréndeme</div><div class="chip chip-events" onclick="openEvents()">📅 Eventos</div><div class="chip chip-map" onclick="openMap()">🌍 Mapa</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">❤️ Favoritos${favorites.length?' ('+favorites.length+')':''}</div>`+depts.map(d=>`<div class="chip ${d===selectedDept?'active':''}" onclick="selectedDept='${d}';render()">${d}</div>`).join("");
+  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-surprise" onclick="surpriseMe()">${t("🎲 Sorpréndeme")}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`+depts.map(d=>`<div class="chip ${d===selectedDept?'active':''}" onclick="selectedDept='${d}';render()">${d==="Todos"?t("Todos"):d}</div>`).join("");
   const totalRatings = places.reduce((sum,p)=>sum+getCount(p.id),0);
   const firstStatsRender = !statsAnimatedOnce && fsReady;
-  document.getElementById("stats").innerHTML=`<span class="stat"><b id="statPlacesNum">${firstStatsRender?0:filtered.length}</b> lugar${filtered.length!==1?'es':''} encontrado${filtered.length!==1?'s':''}</span>${totalRatings>0?`<span class="stat stat-secondary">⭐ <b id="statRatingsNum">${firstStatsRender?0:totalRatings}</b> valoracion${totalRatings!==1?'es':''} en la app</span>`:''}<select class="sort-select" onchange="setSortBy(this.value)"><option value="default" ${sortBy==='default'?'selected':''}>Relevancia</option><option value="rating" ${sortBy==='rating'?'selected':''}>⭐ Mejor valorado</option><option value="az" ${sortBy==='az'?'selected':''}>A-Z</option></select>`;
+  const placesWord = currentLang==="en" ? (filtered.length!==1?"places found":"place found") : `lugar${filtered.length!==1?'es':''} encontrado${filtered.length!==1?'s':''}`;
+  const ratingsWord = currentLang==="en" ? `⭐ <b id="statRatingsNum">${firstStatsRender?0:totalRatings}</b> rating${totalRatings!==1?'s':''} in the app` : `⭐ <b id="statRatingsNum">${firstStatsRender?0:totalRatings}</b> valoracion${totalRatings!==1?'es':''} en la app`;
+  const sortOptions = currentLang==="en"
+    ? `<option value="default" ${sortBy==='default'?'selected':''}>Relevance</option><option value="rating" ${sortBy==='rating'?'selected':''}>⭐ Top rated</option><option value="az" ${sortBy==='az'?'selected':''}>A-Z</option>`
+    : `<option value="default" ${sortBy==='default'?'selected':''}>Relevancia</option><option value="rating" ${sortBy==='rating'?'selected':''}>⭐ Mejor valorado</option><option value="az" ${sortBy==='az'?'selected':''}>A-Z</option>`;
+  document.getElementById("stats").innerHTML=`<span class="stat"><b id="statPlacesNum">${firstStatsRender?0:filtered.length}</b> ${placesWord}</span>${totalRatings>0?`<span class="stat stat-secondary">${ratingsWord}</span>`:''}<select class="sort-select" onchange="setSortBy(this.value)">${sortOptions}</select>`;
   if(firstStatsRender){
     statsAnimatedOnce=true;
     animateCountUp("statPlacesNum", filtered.length);
@@ -1280,11 +1375,11 @@ function render(){
     const pn=getPosNeg(p.id);
     const pnHtml=(pn.pos||pn.neg)?`<div class="pn-summary"><span>👍 ${pn.pos}</span><span>👎 ${pn.neg}</span></div>`:'';
     return`<div class="card" style="animation-delay:${Math.min(idx*40,400)}ms" onclick="openView(${p.id})" tabindex="0" role="button" aria-label="Ver detalles de ${p.name}" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openView(${p.id})}">
-      <div class="card-img">${imgHtml}${isTop?'<span class="badge-top">⭐ Destacado</span>':''}<button class="card-fav" onclick="event.stopPropagation();toggleFavorite(${p.id})">${isFavorite(p.id)?'❤️':'🤍'}</button></div>
+      <div class="card-img">${imgHtml}${isTop?`<span class="badge-top">⭐ ${currentLang==="en"?"Top rated":"Destacado"}</span>`:''}<button class="card-fav" onclick="event.stopPropagation();toggleFavorite(${p.id})">${isFavorite(p.id)?'❤️':'🤍'}</button></div>
       <div class="card-body">
         <div class="card-dept">${highlightMatch(p.dept, searchQ)}</div>
-        <div class="card-name">${highlightMatch(p.name, searchQ)}</div>
-        <div class="stars-row"><div class="stars">${starsHtml}</div><span class="rcount">${cnt>0?avg.toFixed(1)+' ('+cnt+')':'Sin valorar'}</span></div>
+        <div class="card-name">${highlightMatch(tPlaceName(p), searchQ)}</div>
+        <div class="stars-row"><div class="stars">${starsHtml}</div><span class="rcount">${cnt>0?avg.toFixed(1)+' ('+cnt+')':t("Sin valorar")}</span></div>
         ${pnHtml}
       </div>
       ${isAdmin?`<div class="card-admin-btns" onclick="event.stopPropagation()"><button class="btn-edit" onclick="openEdit(${p.id})">✏️ Editar</button><button class="btn-del" onclick="deletePlace(${p.id})">🗑️ Eliminar</button></div>`:''}
@@ -1293,13 +1388,25 @@ function render(){
 }
 
 /* ---- VIEW / GALLERY ---- */
+function applyModalTranslations(){
+  const shareBtn = document.getElementById("share-btn");
+  if(shareBtn) shareBtn.textContent = t("📤 Compartir este lugar");
+  const rateQ = document.getElementById("rate-question");
+  if(rateQ) rateQ.textContent = t("¿Cómo valorás este lugar?");
+  const rateBtn = document.getElementById("rate-btn");
+  if(rateBtn) rateBtn.textContent = t("Guardar valoración ⭐");
+  const commentsLabel = document.getElementById("comments-label");
+  if(commentsLabel) commentsLabel.textContent = t("Comentarios de turistas");
+  const commentBtn = document.getElementById("comment-btn");
+  if(commentBtn) commentBtn.textContent = t("Publicar comentario");
+}
 function openView(id){
   const p=places.find(x=>x.id===id);
   viewingId=id; tempRating=0; galIdx=0; commentType="pos";
   const imgs=p.imgs||[];
-  document.getElementById("vm-name").textContent=p.name;
+  document.getElementById("vm-name").textContent=tPlaceName(p);
   document.getElementById("vm-dept").textContent="📍 "+p.dept;
-  document.getElementById("vm-desc").textContent=p.desc;
+  document.getElementById("vm-desc").textContent=tPlaceDesc(p);
   const emojiWrap=document.getElementById("vm-emoji-wrap");
   const galleryWrap=document.getElementById("galleryWrap");
   if(imgs.length){
@@ -1313,6 +1420,7 @@ function openView(id){
   }
   renderInfobox(p);
   updateItinBtn();
+  applyModalTranslations();
   loadWeather(p);
   trackPlaceView(p);
   document.getElementById("newComment").value="";
@@ -1327,7 +1435,7 @@ function renderInfobox(p){
   const rows=[];
   if(p.address){
     rows.push(`<div class="irow"><span class="ic">📍</span><span><b>Dirección:</b> ${p.address}</span></div>`);
-    rows.push(`<button class="btn-directions" onclick="openDirections()">🧭 Cómo llegar</button>`);
+    rows.push(`<button class="btn-directions" onclick="openDirections()">${t("🧭 Cómo llegar")}</button>`);
   }
   if(p.emergency) rows.push(`<div class="irow iemergency"><span class="ic">🚨</span><span><b>Emergencias:</b> ${p.emergency}</span></div>`);
   if(p.info) rows.push(`<div class="irow"><span class="ic">ℹ️</span><span>${p.info}</span></div>`);
@@ -1472,7 +1580,7 @@ function submitRating(){
 
 function launchConfetti(){
   try{
-    const colors=['#1D9E75','#EF9F27','#E24B4A','#0F6E56','#ffffff'];
+    const colors=['#C1502E','#EF9F27','#E24B4A','#8F3A1E','#ffffff'];
     const container=document.createElement("div");
     container.style.position="fixed";
     container.style.inset="0";
@@ -1637,6 +1745,7 @@ window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPro
 if("serviceWorker"in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
 
 applyTheme(getEffectiveTheme());
+loadLanguage();
 loadFavorites();
 loadItinerary();
 loadEvents();
