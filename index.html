@@ -191,6 +191,11 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .itin-hours{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2)}
 .itin-hours input{width:44px;padding:5px;border:1px solid var(--border);border-radius:6px;text-align:center;font-size:13px;background:var(--bg);color:var(--text)}
 .itin-remove{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1}
+.rules-box{background:var(--green-bg);border:1px solid var(--green);border-radius:12px;padding:14px;margin-bottom:16px}
+.rules-box h4{font-size:13px;color:var(--green-dark);margin:0 0 8px;display:flex;align-items:center;gap:6px}
+.rules-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px}
+.rules-list li{font-size:13px;color:var(--text);display:flex;gap:8px;align-items:flex-start;line-height:1.4}
+.rules-list li::before{content:"✓";color:var(--green-dark);font-weight:700;flex-shrink:0}
 
 /* STATS PANEL */
 .stats-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
@@ -353,6 +358,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <p class="sheet-desc" id="vm-desc"></p>
 
       <div id="vm-infobox" class="infobox"></div>
+      <div id="vm-rules"></div>
 
       <p class="rate-label" id="rate-question">¿Cómo valorás este lugar?</p>
       <div class="big-stars" id="vm-stars"></div>
@@ -490,6 +496,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         </div>
       </div>
       <div class="field"><label>Descripción</label><textarea id="e-desc" placeholder="Describe el lugar turístico..."></textarea></div>
+      <div class="field"><label>🌱 Reglas de Oro del Visitante (una por línea)</label><textarea id="e-rules" placeholder="Ej: Llevá tu propia bolsa de basura&#10;No usar bloqueador químico en esta laguna"></textarea></div>
       <div class="field"><label>Dirección / Ubicación</label><input id="e-address" type="text" placeholder="Ej: Parque Central, León"/></div>
       <div class="field">
         <label>Coordenadas (para que aparezca en el mapa)</label>
@@ -570,22 +577,22 @@ const RT_KEY = "exploranica_v4_ratings";
 const CM_KEY = "exploranica_v4_comments";
 
 const DEFAULT_PLACES = [
-  {id:1,name:"Catedral de León",dept:"León",emoji:"⛪",lat:12.43498,lng:-86.8781,imgs:[],desc:"Catedral barroca colonial, Patrimonio de la Humanidad por la UNESCO. La más grande de Centroamérica.",address:"Parque Central, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Horario: 8:00am - 5:00pm. Entrada a la cúpula con costo adicional."},
-  {id:2,name:"Volcán Cerro Negro",dept:"León",emoji:"🌋",lat:12.506,lng:-86.702,imgs:[],desc:"Volcán activo donde se practica el sandboarding. Uno de los más jóvenes de América.",address:"Complejo Volcánico Telica-Rota, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se recomienda guía local. Llevar agua, protector solar y calzado cerrado."},
-  {id:3,name:"Laguna de Apoyo",dept:"Granada",emoji:"🏖️",lat:11.9298,lng:-86.0556,imgs:[],desc:"Laguna volcánica de aguas cristalinas perfecta para nadar, kayak y snorkel.",address:"Reserva Natural Laguna de Apoyo, Granada/Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Entrada con costo. Alquiler de kayaks disponible en la orilla."},
-  {id:4,name:"Isla de Ometepe",dept:"Rivas",emoji:"🌿",lat:11.500,lng:-85.583,imgs:[],desc:"Isla formada por dos volcanes en el Lago Cocibolca. Reserva de biosfera de la UNESCO.",address:"Lago Cocibolca, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por ferry desde San Jorge. Viaje aprox. 1 hora."},
-  {id:5,name:"Centro Histórico de Granada",dept:"Granada",emoji:"🏛️",lat:11.933,lng:-85.950,imgs:[],desc:"Ciudad colonial con arquitectura colorida, iglesias históricas y gastronomía local.",address:"Parque Central, Granada",emergency:"118 (Policía) / 128 (Bomberos)",info:"Recorridos en coche tirado por caballos disponibles en el parque central."},
-  {id:6,name:"Cañón de Somoto",dept:"Madriz",emoji:"🪨",lat:13.4539,lng:-86.7039,imgs:[],desc:"Impresionante cañón de rocas antiguas ideal para trekking, natación y rappel.",address:"Km 222 carretera Panamericana, Somoto",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours guiados obligatorios por seguridad. Llevar ropa de cambio."},
-  {id:7,name:"Reserva Indio Maíz",dept:"Río San Juan",emoji:"🦜",lat:11.0825,lng:-84.095,imgs:[],desc:"Una de las selvas tropicales más biodiversas de Centroamérica. Jaguares y tortugas.",address:"Sureste de Río San Juan",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso solo con guía autorizado. Mejor época: noviembre a mayo."},
-  {id:8,name:"San Juan del Sur",dept:"Rivas",emoji:"🏄",lat:11.250,lng:-85.867,imgs:[],desc:"Bahía pintoresca famosa por el surf, atardeceres y vida nocturna en la costa del Pacífico.",address:"Costa Pacífico, San Juan del Sur, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clases de surf disponibles en la playa principal."},
-  {id:9,name:"Volcán Masaya",dept:"Masaya",emoji:"🔥",lat:11.98278,lng:-86.16194,imgs:[],desc:"Volcán activo con lago de lava visible de noche. Uno de los pocos en el mundo.",address:"Parque Nacional Volcán Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours nocturnos para ver la lava. Reservar con anticipación."},
-  {id:10,name:"Mercado de Masaya",dept:"Masaya",emoji:"🎨",lat:11.967,lng:-86.100,imgs:[],desc:"El mercado artesanal más grande de Nicaragua. Hamacas, cerámica y artesanías típicas.",address:"Centro de Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se puede negociar el precio. Abierto todos los días."},
-  {id:11,name:"Corn Island",dept:"RACCS",emoji:"🏝️",lat:12.167,lng:-83.033,imgs:[],desc:"Isla caribeña con playas de arena blanca, arrecifes de coral y aguas turquesas.",address:"Mar Caribe, RACCS",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por avión desde Managua o barco desde Bluefields."},
-  {id:12,name:"Lago Xolotlán",dept:"Managua",emoji:"🌃",lat:12.136,lng:-86.251,imgs:[],desc:"Lago de Managua con malecón renovado, ideal para disfrutar el atardecer capitalino.",address:"Malecón de Managua",emergency:"118 (Policía) / 128 (Bomberos)",info:"Zona segura con vigilancia. Buena para visitar al atardecer."},
-  {id:13,name:"Ruinas de León Viejo",dept:"León",emoji:"🏚️",lat:12.400547,lng:-86.617797,imgs:[],desc:"Primeras ruinas coloniales de Nicaragua, declaradas Patrimonio Mundial de la UNESCO.",address:"La Paz Centro, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Museo de sitio con guías incluidos en la entrada."},
-  {id:14,name:"Reserva Miraflor",dept:"Estelí",emoji:"🦋",lat:13.21,lng:-86.28,imgs:[],desc:"Reserva natural comunitaria con cascadas, flora y fauna únicas de la región norte.",address:"Comunidad Miraflor, Estelí",emergency:"118 (Policía) / 128 (Bomberos)",info:"Turismo comunitario. Hospedaje rural disponible."},
-  {id:15,name:"Peñas Blancas",dept:"Jinotega",emoji:"🌄",lat:13.2527,lng:-85.6640,imgs:[],desc:"Reserva natural en las montañas del norte con vistas espectaculares y biodiversidad única.",address:"Macizo de Peñas Blancas, Jinotega",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clima frío, llevar ropa abrigada."},
-  {id:16,name:"Playa Popoyo",dept:"Rivas",emoji:"🌅",lat:11.4731,lng:-86.1270,imgs:[],desc:"Playa reconocida internacionalmente como uno de los mejores spots de surf del país.",address:"Tola, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Buen oleaje todo el año. Hospedajes frente al mar."},
+  {id:1,name:"Catedral de León",dept:"León",emoji:"⛪",lat:12.43498,lng:-86.8781,imgs:[],rules:["Vestimenta apropiada para ingresar al templo","No tocar los frescos ni las pinturas históricas","Calzado cerrado para subir a la cúpula"],desc:"Catedral barroca colonial, Patrimonio de la Humanidad por la UNESCO. La más grande de Centroamérica.",address:"Parque Central, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Horario: 8:00am - 5:00pm. Entrada a la cúpula con costo adicional."},
+  {id:2,name:"Volcán Cerro Negro",dept:"León",emoji:"🌋",lat:12.506,lng:-86.702,imgs:[],rules:["Calzado cerrado y ropa que cubra la piel (rocas cortantes)","Llevar suficiente agua, no hay sombra en el sendero","No alejarse del sendero marcado por el guía"],desc:"Volcán activo donde se practica el sandboarding. Uno de los más jóvenes de América.",address:"Complejo Volcánico Telica-Rota, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se recomienda guía local. Llevar agua, protector solar y calzado cerrado."},
+  {id:3,name:"Laguna de Apoyo",dept:"Granada",emoji:"🏖️",lat:11.9298,lng:-86.0556,imgs:[],rules:["No usar bloqueador químico, contamina el agua volcánica","Llevá tu propia bolsa de basura","No dejar restos de comida en la orilla"],desc:"Laguna volcánica de aguas cristalinas perfecta para nadar, kayak y snorkel.",address:"Reserva Natural Laguna de Apoyo, Granada/Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Entrada con costo. Alquiler de kayaks disponible en la orilla."},
+  {id:4,name:"Isla de Ometepe",dept:"Rivas",emoji:"🌿",lat:11.500,lng:-85.583,imgs:[],rules:["Mantenerse en los senderos señalizados de la reserva","No dar de comer a la fauna silvestre","Llevar agua suficiente para las caminatas largas"],desc:"Isla formada por dos volcanes en el Lago Cocibolca. Reserva de biosfera de la UNESCO.",address:"Lago Cocibolca, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por ferry desde San Jorge. Viaje aprox. 1 hora."},
+  {id:5,name:"Centro Histórico de Granada",dept:"Granada",emoji:"🏛️",lat:11.933,lng:-85.950,imgs:[],rules:["No tocar ni rayar las fachadas coloniales","Pedir permiso antes de fotografiar a las personas","Apoyar el comercio y los artesanos locales"],desc:"Ciudad colonial con arquitectura colorida, iglesias históricas y gastronomía local.",address:"Parque Central, Granada",emergency:"118 (Policía) / 128 (Bomberos)",info:"Recorridos en coche tirado por caballos disponibles en el parque central."},
+  {id:6,name:"Cañón de Somoto",dept:"Madriz",emoji:"🪨",lat:13.4539,lng:-86.7039,imgs:[],rules:["Ingresar solo con guía local certificado","Calzado con buen agarre para las rocas húmedas","No dejar basura en el río ni en las orillas"],desc:"Impresionante cañón de rocas antiguas ideal para trekking, natación y rappel.",address:"Km 222 carretera Panamericana, Somoto",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours guiados obligatorios por seguridad. Llevar ropa de cambio."},
+  {id:7,name:"Reserva Indio Maíz",dept:"Río San Juan",emoji:"🦜",lat:11.0825,lng:-84.095,imgs:[],rules:["Ingresar únicamente con guía autorizado","No alimentar ni tocar la fauna silvestre","Mantenerse siempre en los senderos establecidos"],desc:"Una de las selvas tropicales más biodiversas de Centroamérica. Jaguares y tortugas.",address:"Sureste de Río San Juan",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso solo con guía autorizado. Mejor época: noviembre a mayo."},
+  {id:8,name:"San Juan del Sur",dept:"Rivas",emoji:"🏄",lat:11.250,lng:-85.867,imgs:[],rules:["Llevá tu propia bolsa de basura a la playa","Respetar las zonas de anidación de tortugas","Cuidado con las corrientes al nadar en el mar abierto"],desc:"Bahía pintoresca famosa por el surf, atardeceres y vida nocturna en la costa del Pacífico.",address:"Costa Pacífico, San Juan del Sur, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clases de surf disponibles en la playa principal."},
+  {id:9,name:"Volcán Masaya",dept:"Masaya",emoji:"🔥",lat:11.98278,lng:-86.16194,imgs:[],rules:["Seguir las indicaciones sobre gases volcánicos","No arrojar objetos al cráter","Llevar mascarilla si hay mucha ceniza en el aire"],desc:"Volcán activo con lago de lava visible de noche. Uno de los pocos en el mundo.",address:"Parque Nacional Volcán Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours nocturnos para ver la lava. Reservar con anticipación."},
+  {id:10,name:"Mercado de Masaya",dept:"Masaya",emoji:"🎨",lat:11.967,lng:-86.100,imgs:[],rules:["Preguntar antes de fotografiar a los artesanos","Regatear con respeto, es parte de la cultura local","Comprar directo a los artesanos apoya a la comunidad"],desc:"El mercado artesanal más grande de Nicaragua. Hamacas, cerámica y artesanías típicas.",address:"Centro de Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se puede negociar el precio. Abierto todos los días."},
+  {id:11,name:"Corn Island",dept:"RACCS",emoji:"🏝️",lat:12.167,lng:-83.033,imgs:[],rules:["No tocar ni pisar el coral","Usar protector solar biodegradable","Recoger tu basura antes de dejar la playa"],desc:"Isla caribeña con playas de arena blanca, arrecifes de coral y aguas turquesas.",address:"Mar Caribe, RACCS",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por avión desde Managua o barco desde Bluefields."},
+  {id:12,name:"Lago Xolotlán",dept:"Managua",emoji:"🌃",lat:12.136,lng:-86.251,imgs:[],rules:["Evitar el contacto directo con el agua del lago","Llevá tu basura contigo, hay poca recolección","Usar protector solar, hay poca sombra en el malecón"],desc:"Lago de Managua con malecón renovado, ideal para disfrutar el atardecer capitalino.",address:"Malecón de Managua",emergency:"118 (Policía) / 128 (Bomberos)",info:"Zona segura con vigilancia. Buena para visitar al atardecer."},
+  {id:13,name:"Ruinas de León Viejo",dept:"León",emoji:"🏚️",lat:12.400547,lng:-86.617797,imgs:[],rules:["No subir ni tocar las estructuras arqueológicas","No remover piedras ni objetos del sitio","Usar protector solar, el sitio tiene poca sombra"],desc:"Primeras ruinas coloniales de Nicaragua, declaradas Patrimonio Mundial de la UNESCO.",address:"La Paz Centro, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Museo de sitio con guías incluidos en la entrada."},
+  {id:14,name:"Reserva Miraflor",dept:"Estelí",emoji:"🦋",lat:13.21,lng:-86.28,imgs:[],rules:["Contratar guías de la comunidad local","Mantenerse en los senderos señalizados","No encender fogatas fuera de las zonas permitidas"],desc:"Reserva natural comunitaria con cascadas, flora y fauna únicas de la región norte.",address:"Comunidad Miraflor, Estelí",emergency:"118 (Policía) / 128 (Bomberos)",info:"Turismo comunitario. Hospedaje rural disponible."},
+  {id:15,name:"Peñas Blancas",dept:"Jinotega",emoji:"🌄",lat:13.2527,lng:-85.6640,imgs:[],rules:["Ingresar solo con guía, zona de niebla y difícil acceso","Llevar ropa de abrigo, la temperatura es fría","Respetar la vida silvestre y no acercarse demasiado"],desc:"Reserva natural en las montañas del norte con vistas espectaculares y biodiversidad única.",address:"Macizo de Peñas Blancas, Jinotega",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clima frío, llevar ropa abrigada."},
+  {id:16,name:"Playa Popoyo",dept:"Rivas",emoji:"🌅",lat:11.4731,lng:-86.1270,imgs:[],rules:["Respetar la prioridad de los surfistas locales en el agua","Llevá tu propia bolsa de basura","Cuidado con las corrientes fuertes, consultar con locales"],desc:"Playa reconocida internacionalmente como uno de los mejores spots de surf del país.",address:"Tola, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Buen oleaje todo el año. Hospedajes frente al mar."},
 ];
 
 const DEFAULT_EVENTS = [
@@ -600,22 +607,22 @@ const DEFAULT_EVENTS = [
    y los comentarios de usuarios NO se traducen automáticamente — eso
    requeriría una API de traducción paga (Google Translate/DeepL). */
 const PLACE_TRANSLATIONS_EN = {
-  1:{name:"León Cathedral",desc:"Colonial baroque cathedral, a UNESCO World Heritage Site. The largest in Central America."},
-  2:{name:"Cerro Negro Volcano",desc:"Active volcano famous for volcano boarding. One of the youngest volcanoes in the Americas."},
-  3:{name:"Apoyo Lagoon",desc:"Volcanic lagoon with crystal-clear waters, perfect for swimming, kayaking, and snorkeling."},
-  4:{name:"Ometepe Island",desc:"Island formed by two volcanoes in Lake Cocibolca. A UNESCO Biosphere Reserve."},
-  5:{name:"Granada Historic Center",desc:"Colonial city with colorful architecture, historic churches, and local cuisine."},
-  6:{name:"Somoto Canyon",desc:"Impressive ancient rock canyon, ideal for trekking, swimming, and rappelling."},
-  7:{name:"Indio Maíz Reserve",desc:"One of Central America's most biodiverse rainforests. Home to jaguars and turtles."},
-  8:{name:"San Juan del Sur",desc:"Picturesque bay famous for surfing, sunsets, and nightlife on the Pacific coast."},
-  9:{name:"Masaya Volcano",desc:"Active volcano with a visible lava lake at night. One of the few in the world."},
-  10:{name:"Masaya Market",desc:"Nicaragua's largest craft market. Hammocks, pottery, and traditional handicrafts."},
-  11:{name:"Corn Island",desc:"Caribbean island with white sand beaches, coral reefs, and turquoise waters."},
-  12:{name:"Lake Xolotlán",desc:"Lake Managua with a renovated boardwalk, perfect for enjoying the capital's sunset."},
-  13:{name:"León Viejo Ruins",desc:"Nicaragua's first colonial ruins, declared a UNESCO World Heritage Site."},
-  14:{name:"Miraflor Reserve",desc:"Community-run nature reserve with waterfalls and unique flora and fauna of the northern region."},
-  15:{name:"Peñas Blancas",desc:"Nature reserve in the northern mountains with spectacular views and unique biodiversity."},
-  16:{name:"Popoyo Beach",desc:"Internationally recognized beach, one of the country's best surf spots."}
+  1:{name:"León Cathedral",desc:"Colonial baroque cathedral, a UNESCO World Heritage Site. The largest in Central America.",rules:["Dress appropriately to enter the temple","Do not touch the frescoes or historic paintings","Closed-toe shoes required to climb the dome"]},
+  2:{name:"Cerro Negro Volcano",desc:"Active volcano famous for volcano boarding. One of the youngest volcanoes in the Americas.",rules:["Closed shoes and clothing that covers skin (sharp rocks)","Bring enough water, there's no shade on the trail","Don't stray from the trail marked by your guide"]},
+  3:{name:"Apoyo Lagoon",desc:"Volcanic lagoon with crystal-clear waters, perfect for swimming, kayaking, and snorkeling.",rules:["Don't use chemical sunscreen, it pollutes the volcanic water","Bring your own trash bag","Don't leave food scraps on the shore"]},
+  4:{name:"Ometepe Island",desc:"Island formed by two volcanoes in Lake Cocibolca. A UNESCO Biosphere Reserve.",rules:["Stay on the marked trails within the reserve","Don't feed the wildlife","Bring enough water for long hikes"]},
+  5:{name:"Granada Historic Center",desc:"Colonial city with colorful architecture, historic churches, and local cuisine.",rules:["Don't touch or scratch the colonial facades","Ask permission before photographing people","Support local shops and artisans"]},
+  6:{name:"Somoto Canyon",desc:"Impressive ancient rock canyon, ideal for trekking, swimming, and rappelling.",rules:["Enter only with a certified local guide","Wear shoes with good grip for wet rocks","Don't leave trash in the river or on the banks"]},
+  7:{name:"Indio Maíz Reserve",desc:"One of Central America's most biodiverse rainforests. Home to jaguars and turtles.",rules:["Enter only with an authorized guide","Don't feed or touch the wildlife","Always stay on the established trails"]},
+  8:{name:"San Juan del Sur",desc:"Picturesque bay famous for surfing, sunsets, and nightlife on the Pacific coast.",rules:["Bring your own trash bag to the beach","Respect sea turtle nesting areas","Be careful of currents when swimming in open water"]},
+  9:{name:"Masaya Volcano",desc:"Active volcano with a visible lava lake at night. One of the few in the world.",rules:["Follow the posted guidance on volcanic gases","Don't throw objects into the crater","Bring a mask if there's a lot of ash in the air"]},
+  10:{name:"Masaya Market",desc:"Nicaragua's largest craft market. Hammocks, pottery, and traditional handicrafts.",rules:["Ask before photographing artisans at work","Haggle respectfully, it's part of the local culture","Buying directly from artisans supports the community"]},
+  11:{name:"Corn Island",desc:"Caribbean island with white sand beaches, coral reefs, and turquoise waters.",rules:["Don't touch or step on the coral","Use biodegradable sunscreen","Pick up your trash before leaving the beach"]},
+  12:{name:"Lake Xolotlán",desc:"Lake Managua with a renovated boardwalk, perfect for enjoying the capital's sunset.",rules:["Avoid direct contact with the lake water","Take your trash with you, collection is limited","Wear sunscreen, there's little shade on the boardwalk"]},
+  13:{name:"León Viejo Ruins",desc:"Nicaragua's first colonial ruins, declared a UNESCO World Heritage Site.",rules:["Don't climb on or touch the archaeological structures","Don't remove stones or objects from the site","Wear sunscreen, the site has little shade"]},
+  14:{name:"Miraflor Reserve",desc:"Community-run nature reserve with waterfalls and unique flora and fauna of the northern region.",rules:["Hire guides from the local community","Stay on the marked trails","Don't light campfires outside permitted areas"]},
+  15:{name:"Peñas Blancas",desc:"Nature reserve in the northern mountains with spectacular views and unique biodiversity.",rules:["Enter only with a guide, foggy and hard to access area","Bring warm clothing, temperatures are cold","Respect wildlife and don't get too close"]},
+  16:{name:"Popoyo Beach",desc:"Internationally recognized beach, one of the country's best surf spots.",rules:["Respect local surfers' priority in the water","Bring your own trash bag","Watch for strong currents, ask locals for advice"]}
 };
 const EVENT_TRANSLATIONS_EN = {
   1:{name:"Descent of Santo Domingo de Guzmán",desc:"Traditional procession from Las Sierritas to downtown Managua. One of Nicaragua's most crowded patron saint festivals."},
@@ -643,6 +650,30 @@ const UI_STRINGS_EN = {
 function t(str){ return currentLang==="en" ? (UI_STRINGS_EN[str]||str) : str; }
 function tPlaceName(p){ return (currentLang==="en" && PLACE_TRANSLATIONS_EN[p.id]) ? PLACE_TRANSLATIONS_EN[p.id].name : p.name; }
 function tPlaceDesc(p){ return (currentLang==="en" && PLACE_TRANSLATIONS_EN[p.id]) ? PLACE_TRANSLATIONS_EN[p.id].desc : p.desc; }
+const PLACE_RULES_ES = {
+  1:["Vestimenta apropiada para ingresar al templo","No tocar los frescos ni las pinturas históricas","Calzado cerrado para subir a la cúpula"],
+  2:["Calzado cerrado y ropa que cubra la piel (rocas cortantes)","Llevar suficiente agua, no hay sombra en el sendero","No alejarse del sendero marcado por el guía"],
+  3:["No usar bloqueador químico, contamina el agua volcánica","Llevá tu propia bolsa de basura","No dejar restos de comida en la orilla"],
+  4:["Mantenerse en los senderos señalizados de la reserva","No dar de comer a la fauna silvestre","Llevar agua suficiente para las caminatas largas"],
+  5:["No tocar ni rayar las fachadas coloniales","Pedir permiso antes de fotografiar a las personas","Apoyar el comercio y los artesanos locales"],
+  6:["Ingresar solo con guía local certificado","Calzado con buen agarre para las rocas húmedas","No dejar basura en el río ni en las orillas"],
+  7:["Ingresar únicamente con guía autorizado","No alimentar ni tocar la fauna silvestre","Mantenerse siempre en los senderos establecidos"],
+  8:["Llevá tu propia bolsa de basura a la playa","Respetar las zonas de anidación de tortugas","Cuidado con las corrientes al nadar en el mar abierto"],
+  9:["Seguir las indicaciones sobre gases volcánicos","No arrojar objetos al cráter","Llevar mascarilla si hay mucha ceniza en el aire"],
+  10:["Preguntar antes de fotografiar a los artesanos","Regatear con respeto, es parte de la cultura local","Comprar directo a los artesanos apoya a la comunidad"],
+  11:["No tocar ni pisar el coral","Usar protector solar biodegradable","Recoger tu basura antes de dejar la playa"],
+  12:["Evitar el contacto directo con el agua del lago","Llevá tu basura contigo, hay poca recolección","Usar protector solar, hay poca sombra en el malecón"],
+  13:["No subir ni tocar las estructuras arqueológicas","No remover piedras ni objetos del sitio","Usar protector solar, el sitio tiene poca sombra"],
+  14:["Contratar guías de la comunidad local","Mantenerse en los senderos señalizados","No encender fogatas fuera de las zonas permitidas"],
+  15:["Ingresar solo con guía, zona de niebla y difícil acceso","Llevar ropa de abrigo, la temperatura es fría","Respetar la vida silvestre y no acercarse demasiado"],
+  16:["Respetar la prioridad de los surfistas locales en el agua","Llevá tu propia bolsa de basura","Cuidado con las corrientes fuertes, consultar con locales"]
+};
+function tPlaceRules(p){
+  if(currentLang==="en" && PLACE_TRANSLATIONS_EN[p.id] && PLACE_TRANSLATIONS_EN[p.id].rules) return PLACE_TRANSLATIONS_EN[p.id].rules;
+  if(p.rules && p.rules.length) return p.rules;
+  if(PLACE_RULES_ES[p.id]) return PLACE_RULES_ES[p.id];
+  return [];
+}
 function tEventName(e){ return (currentLang==="en" && EVENT_TRANSLATIONS_EN[e.id]) ? EVENT_TRANSLATIONS_EN[e.id].name : e.name; }
 function tEventDesc(e){ return (currentLang==="en" && EVENT_TRANSLATIONS_EN[e.id]) ? EVENT_TRANSLATIONS_EN[e.id].desc : e.desc; }
 function toggleLanguage(){
@@ -759,21 +790,24 @@ function loadData(){
     render();
     return;
   }
-  // Si en 6 segundos no hay respuesta de Firestore, mostrar los lugares por defecto localmente para no dejar al usuario sin nada
+  // Si en 10 segundos no hay respuesta de Firestore, mostrar los lugares por defecto localmente para no dejar al usuario sin nada
+  let offlineWarningShown = false;
   const safetyTimer = setTimeout(()=>{
     if(!fsReady){
       console.warn("Firestore no respondió a tiempo, mostrando datos por defecto localmente");
       places = JSON.parse(JSON.stringify(DEFAULT_PLACES));
       places.forEach(p=>{ if(!p.imgs) p.imgs=[]; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
       fsReady = true;
-      showToast("⚠️ Sin conexión a la base de datos, mostrando datos locales");
+      showToast("⚠️ Conexión lenta, mostrando datos locales por ahora");
+      offlineWarningShown = true;
       render();
     }
-  }, 6000);
+  }, 10000);
 
   // Listener en tiempo real para lugares
   placesDoc.onSnapshot(snap=>{
     clearTimeout(safetyTimer);
+    if(offlineWarningShown){ showToast("✅ Conexión recuperada"); offlineWarningShown=false; }
     const remoteList = (snap.exists && Array.isArray(snap.data().list)) ? snap.data().list : null;
     if(remoteList && remoteList.length > 0){
       places = remoteList;
@@ -799,7 +833,10 @@ function loadData(){
   }, err=>{
     clearTimeout(safetyTimer);
     console.error("Error de Firestore:", err);
-    showToast("⚠️ Error de conexión: "+err.code);
+    if(!offlineWarningShown){
+      showToast("⚠️ Problema de conexión, reintentando...");
+      offlineWarningShown = true;
+    }
     if(!fsReady){
       places = JSON.parse(JSON.stringify(DEFAULT_PLACES));
       places.forEach(p=>{ if(!p.imgs) p.imgs=[]; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
@@ -1389,6 +1426,10 @@ function render(){
 
 /* ---- VIEW / GALLERY ---- */
 function applyModalTranslations(){
+  if(viewingId){
+    const p = places.find(x=>x.id===viewingId);
+    if(p) renderRules(p);
+  }
   const shareBtn = document.getElementById("share-btn");
   if(shareBtn) shareBtn.textContent = t("📤 Compartir este lugar");
   const rateQ = document.getElementById("rate-question");
@@ -1419,6 +1460,7 @@ function openView(id){
     galleryWrap.style.display="none";
   }
   renderInfobox(p);
+  renderRules(p);
   updateItinBtn();
   applyModalTranslations();
   loadWeather(p);
@@ -1431,6 +1473,13 @@ function openView(id){
   document.getElementById("viewOverlay").classList.add("open");
 }
 
+function renderRules(p){
+  const box=document.getElementById("vm-rules");
+  const rules=tPlaceRules(p);
+  if(!rules.length){ box.innerHTML=""; return; }
+  const title = currentLang==="en" ? "🌱 Visitor's Golden Rules" : "🌱 Reglas de Oro del Visitante";
+  box.innerHTML=`<div class="rules-box"><h4>${title}</h4><ul class="rules-list">${rules.map(r=>`<li>${r}</li>`).join("")}</ul></div>`;
+}
 function renderInfobox(p){
   const rows=[];
   if(p.address){
@@ -1679,6 +1728,7 @@ function openAdd(){
   document.getElementById("e-dept").value="";
   document.getElementById("e-emoji").value="📍";
   document.getElementById("e-desc").value="";
+  document.getElementById("e-rules").value="";
   document.getElementById("e-address").value="";
   document.getElementById("e-lat").value="";
   document.getElementById("e-lng").value="";
@@ -1697,6 +1747,7 @@ function openEdit(id){
   document.getElementById("e-dept").value=p.dept;
   document.getElementById("e-emoji").value=p.emoji;
   document.getElementById("e-desc").value=p.desc;
+  document.getElementById("e-rules").value=tPlaceRules(p).join("\n");
   document.getElementById("e-address").value=p.address||"";
   document.getElementById("e-lat").value=(p.lat!==undefined && p.lat!==null)?p.lat:"";
   document.getElementById("e-lng").value=(p.lng!==undefined && p.lng!==null)?p.lng:"";
@@ -1711,6 +1762,7 @@ function savePlace(){
   const dept=document.getElementById("e-dept").value.trim();
   const emoji=document.getElementById("e-emoji").value.trim()||"📍";
   const desc=document.getElementById("e-desc").value.trim();
+  const rules=document.getElementById("e-rules").value.split("\n").map(r=>r.trim()).filter(r=>r.length>0);
   const address=document.getElementById("e-address").value.trim();
   const latRaw=document.getElementById("e-lat").value.trim();
   const lngRaw=document.getElementById("e-lng").value.trim();
@@ -1724,10 +1776,10 @@ function savePlace(){
   if(lngRaw && (isNaN(lng) || lng<-180 || lng>180)){showToast("Longitud inválida (debe estar entre -180 y 180)");return;}
   if(editingId){
     const idx=places.findIndex(x=>x.id===editingId);
-    places[idx]={...places[idx],name,dept,emoji,desc,address,lat,lng,emergency,info,imgs:editImgs};
+    places[idx]={...places[idx],name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs};
     showToast("Lugar actualizado ✅");
   }else{
-    places.push({id:Date.now(),name,dept,emoji,desc,address,lat,lng,emergency,info,imgs:editImgs,views:0});
+    places.push({id:Date.now(),name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs,views:0});
     showToast("Lugar agregado ✅");
   }
   savePlaces();closeOverlay("editOverlay");render();
