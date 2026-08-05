@@ -735,6 +735,7 @@ if(db){
   }catch(e){ console.warn("No se pudo activar la persistencia offline:", e); }
 }
 const placesDoc = firebaseOk ? db.collection("exploranica").doc("places") : null;
+const placesCollection = firebaseOk ? db.collection("exploranica_places") : null;
 const ratingsDoc = firebaseOk ? db.collection("exploranica").doc("ratings") : null;
 const commentsDoc = firebaseOk ? db.collection("exploranica").doc("comments") : null;
 const eventsDoc = firebaseOk ? db.collection("exploranica").doc("events") : null;
@@ -804,31 +805,39 @@ function loadData(){
     }
   }, 10000);
 
-  // Listener en tiempo real para lugares
-  placesDoc.onSnapshot(snap=>{
+  // Listener en tiempo real para lugares (un documento por lugar, así cada uno tiene su propio megabyte disponible)
+  placesCollection.onSnapshot(snap=>{
     clearTimeout(safetyTimer);
     if(offlineWarningShown){ showToast("✅ Conexión recuperada"); offlineWarningShown=false; }
-    const remoteList = (snap.exists && Array.isArray(snap.data().list)) ? snap.data().list : null;
-    if(remoteList && remoteList.length > 0){
-      places = remoteList;
+    if(!snap.empty){
+      places = snap.docs.map(d=>d.data());
+      places.forEach(p=>{ if(!p.imgs) p.imgs = p.img ? [p.img] : []; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
+      fsReady = true;
+      render();
+      if(document.getElementById("viewOverlay").classList.contains("open") && viewingId){
+        renderComments(viewingId);
+      }
     } else if(!fsReady){
-      // Primera carga y no hay datos válidos en la nube todavía: sembrar con los lugares por defecto
-      places = JSON.parse(JSON.stringify(DEFAULT_PLACES));
-      placesDoc.set({list: places}).then(()=>{
-        console.log("Lugares por defecto guardados en Firestore correctamente");
+      // Colección nueva y vacía: migrar desde el documento único de versiones anteriores si existe, o sembrar con los lugares por defecto
+      placesDoc.get().then(oldDoc=>{
+        const oldList = (oldDoc.exists && Array.isArray(oldDoc.data().list)) ? oldDoc.data().list : null;
+        const seedList = (oldList && oldList.length>0) ? oldList : JSON.parse(JSON.stringify(DEFAULT_PLACES));
+        const batch = db.batch();
+        seedList.forEach(pl=>{ batch.set(placesCollection.doc(String(pl.id)), pl); });
+        batch.commit()
+          .then(()=>console.log("Lugares migrados/sembrados en la nueva colección correctamente"))
+          .catch(err=>console.error("No se pudo migrar/sembrar lugares:", err));
+        places = seedList;
+        places.forEach(p=>{ if(!p.imgs) p.imgs = p.img ? [p.img] : []; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
+        fsReady = true;
+        render();
       }).catch(err=>{
-        console.error("No se pudo sembrar datos:", err);
-        showToast("⚠️ No se pudo guardar en la base de datos: "+err.code);
+        console.error("Error migrando datos de la versión anterior:", err);
+        places = JSON.parse(JSON.stringify(DEFAULT_PLACES));
+        places.forEach(p=>{ if(!p.imgs) p.imgs=[]; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
+        fsReady = true;
+        render();
       });
-    } else if(remoteList && remoteList.length === 0 && places.length > 0){
-      // Ya teníamos lugares cargados y llegó un array vacío: probablemente fue un guardado accidental, no sobrescribir la vista
-      console.warn("Firestore devolvió lista vacía, manteniendo datos locales");
-    }
-    places.forEach(p=>{ if(!p.imgs) p.imgs = p.img ? [p.img] : []; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
-    fsReady = true;
-    render();
-    if(document.getElementById("viewOverlay").classList.contains("open") && viewingId){
-      renderComments(viewingId);
     }
   }, err=>{
     clearTimeout(safetyTimer);
@@ -861,18 +870,22 @@ function loadData(){
   }, err=>console.error(err));
 }
 
-function savePlaces(silent){
-  const sizeKB = new Blob([JSON.stringify(places)]).size / 1024;
+function savePlaceDoc(place, silent){
+  const sizeKB = new Blob([JSON.stringify(place)]).size / 1024;
   if(sizeKB > 950){
-    if(!silent) showToast("⚠️ Demasiadas fotos guardadas, usá menos o enlaces URL");
+    if(!silent) showToast("⚠️ Este lugar tiene demasiadas fotos, usá menos o enlaces URL");
     return;
   }
-  if(!placesDoc){ if(!silent) showToast("⚠️ Guardado localmente (sin conexión)"); return; }
-  placesDoc.set({list: places}).catch(()=>{ if(!silent) showToast("Error al guardar"); });
+  if(!placesCollection){ if(!silent) showToast("⚠️ Guardado localmente (sin conexión)"); return; }
+  placesCollection.doc(String(place.id)).set(place).catch(()=>{ if(!silent) showToast("Error al guardar"); });
+}
+function deletePlaceDoc(id){
+  if(!placesCollection) return;
+  placesCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
 }
 function trackPlaceView(p){
   p.views = (p.views||0)+1;
-  savePlaces(true);
+  savePlaceDoc(p, true);
 }
 function saveRatings(){ if(!ratingsDoc) return; ratingsDoc.set({map: ratings}).catch(()=>showToast("Error al guardar")); }
 function saveComments(){ if(!commentsDoc) return; commentsDoc.set({map: comments}).catch(()=>showToast("Error al guardar")); }
@@ -1662,8 +1675,9 @@ function restoreDefaults(){
   const existingIds = new Set(places.map(p=>p.id));
   const toAdd = DEFAULT_PLACES.filter(d=>!existingIds.has(d.id));
   if(toAdd.length === 0){ showToast("Ya tenés todos los lugares por defecto"); return; }
-  places = [...places, ...JSON.parse(JSON.stringify(toAdd))];
-  savePlaces();
+  const toAddCopies = JSON.parse(JSON.stringify(toAdd));
+  places = [...places, ...toAddCopies];
+  toAddCopies.forEach(pl=>savePlaceDoc(pl, true));
   showToast(`Se restauraron ${toAdd.length} lugares ✅`);
 }
 
@@ -1774,20 +1788,23 @@ function savePlace(){
   if((latRaw && !lngRaw) || (!latRaw && lngRaw)){showToast("Completá latitud Y longitud, o dejá ambas vacías");return;}
   if(latRaw && (isNaN(lat) || lat<-90 || lat>90)){showToast("Latitud inválida (debe estar entre -90 y 90)");return;}
   if(lngRaw && (isNaN(lng) || lng<-180 || lng>180)){showToast("Longitud inválida (debe estar entre -180 y 180)");return;}
+  let savedPlace;
   if(editingId){
     const idx=places.findIndex(x=>x.id===editingId);
     places[idx]={...places[idx],name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs};
+    savedPlace = places[idx];
     showToast("Lugar actualizado ✅");
   }else{
-    places.push({id:Date.now(),name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs,views:0});
+    savedPlace = {id:Date.now(),name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs,views:0};
+    places.push(savedPlace);
     showToast("Lugar agregado ✅");
   }
-  savePlaces();closeOverlay("editOverlay");render();
+  savePlaceDoc(savedPlace);closeOverlay("editOverlay");render();
 }
 
 function deletePlace(id){
   if(!confirm("¿Eliminar este lugar?"))return;
-  places=places.filter(x=>x.id!==id);savePlaces();render();showToast("Lugar eliminado");
+  places=places.filter(x=>x.id!==id);deletePlaceDoc(id);render();showToast("Lugar eliminado");
 }
 
 document.querySelectorAll(".overlay").forEach(o=>{o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");});});
