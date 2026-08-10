@@ -87,6 +87,19 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .chip.chip-surprise{background:var(--amber);color:#fff;border-color:var(--amber);font-weight:700}
 .chip.chip-events{background:var(--green-dark);color:#fff;border-color:var(--green-dark);font-weight:700}
 .chip.chip-map{background:#2E6FD9;color:#fff;border-color:#2E6FD9;font-weight:700}
+.chip.chip-cat{background:var(--surface);color:var(--text2);border-color:#8E5CD9;font-weight:700}
+.chip.chip-cat.active{background:#8E5CD9;color:#fff;border-color:#8E5CD9}
+.cat-option{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);margin-bottom:10px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text)}
+.cat-checkbox-list{display:flex;flex-wrap:wrap;gap:8px}
+.cat-checkbox{padding:8px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer}
+.cat-checkbox.on{background:#8E5CD9;border-color:#8E5CD9;color:#fff}
+.cat-checkbox-list{display:flex;flex-wrap:wrap;gap:8px}
+.cat-checkbox{display:flex;align-items:center;gap:6px;padding:8px 12px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-size:13px;color:var(--text2);user-select:none}
+.cat-checkbox.on{background:#8E5CD920;border-color:#8E5CD9;color:#8E5CD9;font-weight:700}
+.cat-option.selected{background:#8E5CD920;border-color:#8E5CD9;color:#8E5CD9}
+.cat-option .check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.cat-option.selected .check{background:#8E5CD9;border-color:#8E5CD9;color:#fff}
+.cat-match-tag{display:inline-flex;align-items:center;gap:4px;background:#8E5CD920;color:#8E5CD9;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:4px}
 .chip.chip-lang{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
 .sort-select{margin-left:auto;font-size:12px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:inherit;flex-shrink:0}
 .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
@@ -358,6 +371,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <p class="sheet-desc" id="vm-desc"></p>
 
       <div id="vm-infobox" class="infobox"></div>
+      <div id="vm-categories" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
       <div id="vm-rules"></div>
 
       <p class="rate-label" id="rate-question">¿Cómo valorás este lugar?</p>
@@ -449,6 +463,24 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
   </div>
 </div>
 
+<!-- CATEGORY FILTER MODAL -->
+<div class="overlay edit-overlay" id="categoryOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2 id="catModalTitle" style="margin:0">🎯 Categorías</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('categoryOverlay')">Cerrar</button>
+      </div>
+      <p id="catModalSubtitle" style="font-size:13px;color:var(--text3);margin-bottom:14px">Elegí una o varias — te mostramos primero los lugares que más coinciden</p>
+      <div id="categoryOptionsList"></div>
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="clearCategoryFilter()">Limpiar</button>
+        <button class="btn-save" onclick="closeOverlay('categoryOverlay');render()">Ver resultados</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT EVENT MODAL (admin) -->
 <div class="overlay edit-overlay" id="editEventOverlay">
   <div class="sheet edit-sheet">
@@ -497,6 +529,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       </div>
       <div class="field"><label>Descripción</label><textarea id="e-desc" placeholder="Describe el lugar turístico..."></textarea></div>
       <div class="field"><label>🌱 Reglas de Oro del Visitante (una por línea)</label><textarea id="e-rules" placeholder="Ej: Llevá tu propia bolsa de basura&#10;No usar bloqueador químico en esta laguna"></textarea></div>
+      <div class="field"><label>🎯 Categorías</label><div id="e-categories" class="cat-checkbox-list"></div></div>
       <div class="field"><label>Dirección / Ubicación</label><input id="e-address" type="text" placeholder="Ej: Parque Central, León"/></div>
       <div class="field">
         <label>Coordenadas (para que aparezca en el mapa)</label>
@@ -577,22 +610,22 @@ const RT_KEY = "exploranica_v4_ratings";
 const CM_KEY = "exploranica_v4_comments";
 
 const DEFAULT_PLACES = [
-  {id:1,name:"Catedral de León",dept:"León",emoji:"⛪",lat:12.43498,lng:-86.8781,imgs:[],rules:["Vestimenta apropiada para ingresar al templo","No tocar los frescos ni las pinturas históricas","Calzado cerrado para subir a la cúpula"],desc:"Catedral barroca colonial, Patrimonio de la Humanidad por la UNESCO. La más grande de Centroamérica.",address:"Parque Central, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Horario: 8:00am - 5:00pm. Entrada a la cúpula con costo adicional."},
-  {id:2,name:"Volcán Cerro Negro",dept:"León",emoji:"🌋",lat:12.506,lng:-86.702,imgs:[],rules:["Calzado cerrado y ropa que cubra la piel (rocas cortantes)","Llevar suficiente agua, no hay sombra en el sendero","No alejarse del sendero marcado por el guía"],desc:"Volcán activo donde se practica el sandboarding. Uno de los más jóvenes de América.",address:"Complejo Volcánico Telica-Rota, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se recomienda guía local. Llevar agua, protector solar y calzado cerrado."},
-  {id:3,name:"Laguna de Apoyo",dept:"Granada",emoji:"🏖️",lat:11.9298,lng:-86.0556,imgs:[],rules:["No usar bloqueador químico, contamina el agua volcánica","Llevá tu propia bolsa de basura","No dejar restos de comida en la orilla"],desc:"Laguna volcánica de aguas cristalinas perfecta para nadar, kayak y snorkel.",address:"Reserva Natural Laguna de Apoyo, Granada/Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Entrada con costo. Alquiler de kayaks disponible en la orilla."},
-  {id:4,name:"Isla de Ometepe",dept:"Rivas",emoji:"🌿",lat:11.500,lng:-85.583,imgs:[],rules:["Mantenerse en los senderos señalizados de la reserva","No dar de comer a la fauna silvestre","Llevar agua suficiente para las caminatas largas"],desc:"Isla formada por dos volcanes en el Lago Cocibolca. Reserva de biosfera de la UNESCO.",address:"Lago Cocibolca, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por ferry desde San Jorge. Viaje aprox. 1 hora."},
-  {id:5,name:"Centro Histórico de Granada",dept:"Granada",emoji:"🏛️",lat:11.933,lng:-85.950,imgs:[],rules:["No tocar ni rayar las fachadas coloniales","Pedir permiso antes de fotografiar a las personas","Apoyar el comercio y los artesanos locales"],desc:"Ciudad colonial con arquitectura colorida, iglesias históricas y gastronomía local.",address:"Parque Central, Granada",emergency:"118 (Policía) / 128 (Bomberos)",info:"Recorridos en coche tirado por caballos disponibles en el parque central."},
-  {id:6,name:"Cañón de Somoto",dept:"Madriz",emoji:"🪨",lat:13.4539,lng:-86.7039,imgs:[],rules:["Ingresar solo con guía local certificado","Calzado con buen agarre para las rocas húmedas","No dejar basura en el río ni en las orillas"],desc:"Impresionante cañón de rocas antiguas ideal para trekking, natación y rappel.",address:"Km 222 carretera Panamericana, Somoto",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours guiados obligatorios por seguridad. Llevar ropa de cambio."},
-  {id:7,name:"Reserva Indio Maíz",dept:"Río San Juan",emoji:"🦜",lat:11.0825,lng:-84.095,imgs:[],rules:["Ingresar únicamente con guía autorizado","No alimentar ni tocar la fauna silvestre","Mantenerse siempre en los senderos establecidos"],desc:"Una de las selvas tropicales más biodiversas de Centroamérica. Jaguares y tortugas.",address:"Sureste de Río San Juan",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso solo con guía autorizado. Mejor época: noviembre a mayo."},
-  {id:8,name:"San Juan del Sur",dept:"Rivas",emoji:"🏄",lat:11.250,lng:-85.867,imgs:[],rules:["Llevá tu propia bolsa de basura a la playa","Respetar las zonas de anidación de tortugas","Cuidado con las corrientes al nadar en el mar abierto"],desc:"Bahía pintoresca famosa por el surf, atardeceres y vida nocturna en la costa del Pacífico.",address:"Costa Pacífico, San Juan del Sur, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clases de surf disponibles en la playa principal."},
-  {id:9,name:"Volcán Masaya",dept:"Masaya",emoji:"🔥",lat:11.98278,lng:-86.16194,imgs:[],rules:["Seguir las indicaciones sobre gases volcánicos","No arrojar objetos al cráter","Llevar mascarilla si hay mucha ceniza en el aire"],desc:"Volcán activo con lago de lava visible de noche. Uno de los pocos en el mundo.",address:"Parque Nacional Volcán Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours nocturnos para ver la lava. Reservar con anticipación."},
-  {id:10,name:"Mercado de Masaya",dept:"Masaya",emoji:"🎨",lat:11.967,lng:-86.100,imgs:[],rules:["Preguntar antes de fotografiar a los artesanos","Regatear con respeto, es parte de la cultura local","Comprar directo a los artesanos apoya a la comunidad"],desc:"El mercado artesanal más grande de Nicaragua. Hamacas, cerámica y artesanías típicas.",address:"Centro de Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se puede negociar el precio. Abierto todos los días."},
-  {id:11,name:"Corn Island",dept:"RACCS",emoji:"🏝️",lat:12.167,lng:-83.033,imgs:[],rules:["No tocar ni pisar el coral","Usar protector solar biodegradable","Recoger tu basura antes de dejar la playa"],desc:"Isla caribeña con playas de arena blanca, arrecifes de coral y aguas turquesas.",address:"Mar Caribe, RACCS",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por avión desde Managua o barco desde Bluefields."},
-  {id:12,name:"Lago Xolotlán",dept:"Managua",emoji:"🌃",lat:12.136,lng:-86.251,imgs:[],rules:["Evitar el contacto directo con el agua del lago","Llevá tu basura contigo, hay poca recolección","Usar protector solar, hay poca sombra en el malecón"],desc:"Lago de Managua con malecón renovado, ideal para disfrutar el atardecer capitalino.",address:"Malecón de Managua",emergency:"118 (Policía) / 128 (Bomberos)",info:"Zona segura con vigilancia. Buena para visitar al atardecer."},
-  {id:13,name:"Ruinas de León Viejo",dept:"León",emoji:"🏚️",lat:12.400547,lng:-86.617797,imgs:[],rules:["No subir ni tocar las estructuras arqueológicas","No remover piedras ni objetos del sitio","Usar protector solar, el sitio tiene poca sombra"],desc:"Primeras ruinas coloniales de Nicaragua, declaradas Patrimonio Mundial de la UNESCO.",address:"La Paz Centro, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Museo de sitio con guías incluidos en la entrada."},
-  {id:14,name:"Reserva Miraflor",dept:"Estelí",emoji:"🦋",lat:13.21,lng:-86.28,imgs:[],rules:["Contratar guías de la comunidad local","Mantenerse en los senderos señalizados","No encender fogatas fuera de las zonas permitidas"],desc:"Reserva natural comunitaria con cascadas, flora y fauna únicas de la región norte.",address:"Comunidad Miraflor, Estelí",emergency:"118 (Policía) / 128 (Bomberos)",info:"Turismo comunitario. Hospedaje rural disponible."},
-  {id:15,name:"Peñas Blancas",dept:"Jinotega",emoji:"🌄",lat:13.2527,lng:-85.6640,imgs:[],rules:["Ingresar solo con guía, zona de niebla y difícil acceso","Llevar ropa de abrigo, la temperatura es fría","Respetar la vida silvestre y no acercarse demasiado"],desc:"Reserva natural en las montañas del norte con vistas espectaculares y biodiversidad única.",address:"Macizo de Peñas Blancas, Jinotega",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clima frío, llevar ropa abrigada."},
-  {id:16,name:"Playa Popoyo",dept:"Rivas",emoji:"🌅",lat:11.4731,lng:-86.1270,imgs:[],rules:["Respetar la prioridad de los surfistas locales en el agua","Llevá tu propia bolsa de basura","Cuidado con las corrientes fuertes, consultar con locales"],desc:"Playa reconocida internacionalmente como uno de los mejores spots de surf del país.",address:"Tola, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Buen oleaje todo el año. Hospedajes frente al mar."},
+  {id:1,categories:["cultura","historia"],name:"Catedral de León",dept:"León",emoji:"⛪",lat:12.43498,lng:-86.8781,imgs:[],rules:["Vestimenta apropiada para ingresar al templo","No tocar los frescos ni las pinturas históricas","Calzado cerrado para subir a la cúpula"],desc:"Catedral barroca colonial, Patrimonio de la Humanidad por la UNESCO. La más grande de Centroamérica.",address:"Parque Central, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Horario: 8:00am - 5:00pm. Entrada a la cúpula con costo adicional."},
+  {id:2,categories:["aventura","naturaleza","senderismo"],name:"Volcán Cerro Negro",dept:"León",emoji:"🌋",lat:12.506,lng:-86.702,imgs:[],rules:["Calzado cerrado y ropa que cubra la piel (rocas cortantes)","Llevar suficiente agua, no hay sombra en el sendero","No alejarse del sendero marcado por el guía"],desc:"Volcán activo donde se practica el sandboarding. Uno de los más jóvenes de América.",address:"Complejo Volcánico Telica-Rota, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se recomienda guía local. Llevar agua, protector solar y calzado cerrado."},
+  {id:3,categories:["naturaleza","relajacion"],name:"Laguna de Apoyo",dept:"Granada",emoji:"🏖️",lat:11.9298,lng:-86.0556,imgs:[],rules:["No usar bloqueador químico, contamina el agua volcánica","Llevá tu propia bolsa de basura","No dejar restos de comida en la orilla"],desc:"Laguna volcánica de aguas cristalinas perfecta para nadar, kayak y snorkel.",address:"Reserva Natural Laguna de Apoyo, Granada/Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Entrada con costo. Alquiler de kayaks disponible en la orilla."},
+  {id:4,categories:["naturaleza","senderismo","aventura"],name:"Isla de Ometepe",dept:"Rivas",emoji:"🌿",lat:11.500,lng:-85.583,imgs:[],rules:["Mantenerse en los senderos señalizados de la reserva","No dar de comer a la fauna silvestre","Llevar agua suficiente para las caminatas largas"],desc:"Isla formada por dos volcanes en el Lago Cocibolca. Reserva de biosfera de la UNESCO.",address:"Lago Cocibolca, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por ferry desde San Jorge. Viaje aprox. 1 hora."},
+  {id:5,categories:["cultura","historia","gastronomia"],name:"Centro Histórico de Granada",dept:"Granada",emoji:"🏛️",lat:11.933,lng:-85.950,imgs:[],rules:["No tocar ni rayar las fachadas coloniales","Pedir permiso antes de fotografiar a las personas","Apoyar el comercio y los artesanos locales"],desc:"Ciudad colonial con arquitectura colorida, iglesias históricas y gastronomía local.",address:"Parque Central, Granada",emergency:"118 (Policía) / 128 (Bomberos)",info:"Recorridos en coche tirado por caballos disponibles en el parque central."},
+  {id:6,categories:["aventura","naturaleza","senderismo"],name:"Cañón de Somoto",dept:"Madriz",emoji:"🪨",lat:13.4539,lng:-86.7039,imgs:[],rules:["Ingresar solo con guía local certificado","Calzado con buen agarre para las rocas húmedas","No dejar basura en el río ni en las orillas"],desc:"Impresionante cañón de rocas antiguas ideal para trekking, natación y rappel.",address:"Km 222 carretera Panamericana, Somoto",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours guiados obligatorios por seguridad. Llevar ropa de cambio."},
+  {id:7,categories:["naturaleza","senderismo"],name:"Reserva Indio Maíz",dept:"Río San Juan",emoji:"🦜",lat:11.0825,lng:-84.095,imgs:[],rules:["Ingresar únicamente con guía autorizado","No alimentar ni tocar la fauna silvestre","Mantenerse siempre en los senderos establecidos"],desc:"Una de las selvas tropicales más biodiversas de Centroamérica. Jaguares y tortugas.",address:"Sureste de Río San Juan",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso solo con guía autorizado. Mejor época: noviembre a mayo."},
+  {id:8,categories:["aventura","relajacion","playa"],name:"San Juan del Sur",dept:"Rivas",emoji:"🏄",lat:11.250,lng:-85.867,imgs:[],rules:["Llevá tu propia bolsa de basura a la playa","Respetar las zonas de anidación de tortugas","Cuidado con las corrientes al nadar en el mar abierto"],desc:"Bahía pintoresca famosa por el surf, atardeceres y vida nocturna en la costa del Pacífico.",address:"Costa Pacífico, San Juan del Sur, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clases de surf disponibles en la playa principal."},
+  {id:9,categories:["aventura","naturaleza"],name:"Volcán Masaya",dept:"Masaya",emoji:"🔥",lat:11.98278,lng:-86.16194,imgs:[],rules:["Seguir las indicaciones sobre gases volcánicos","No arrojar objetos al cráter","Llevar mascarilla si hay mucha ceniza en el aire"],desc:"Volcán activo con lago de lava visible de noche. Uno de los pocos en el mundo.",address:"Parque Nacional Volcán Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Tours nocturnos para ver la lava. Reservar con anticipación."},
+  {id:10,categories:["cultura","gastronomia"],name:"Mercado de Masaya",dept:"Masaya",emoji:"🎨",lat:11.967,lng:-86.100,imgs:[],rules:["Preguntar antes de fotografiar a los artesanos","Regatear con respeto, es parte de la cultura local","Comprar directo a los artesanos apoya a la comunidad"],desc:"El mercado artesanal más grande de Nicaragua. Hamacas, cerámica y artesanías típicas.",address:"Centro de Masaya",emergency:"118 (Policía) / 128 (Bomberos)",info:"Se puede negociar el precio. Abierto todos los días."},
+  {id:11,categories:["relajacion","playa","naturaleza"],name:"Corn Island",dept:"RACCS",emoji:"🏝️",lat:12.167,lng:-83.033,imgs:[],rules:["No tocar ni pisar el coral","Usar protector solar biodegradable","Recoger tu basura antes de dejar la playa"],desc:"Isla caribeña con playas de arena blanca, arrecifes de coral y aguas turquesas.",address:"Mar Caribe, RACCS",emergency:"118 (Policía) / 128 (Bomberos)",info:"Acceso por avión desde Managua o barco desde Bluefields."},
+  {id:12,categories:["relajacion","cultura"],name:"Lago Xolotlán",dept:"Managua",emoji:"🌃",lat:12.136,lng:-86.251,imgs:[],rules:["Evitar el contacto directo con el agua del lago","Llevá tu basura contigo, hay poca recolección","Usar protector solar, hay poca sombra en el malecón"],desc:"Lago de Managua con malecón renovado, ideal para disfrutar el atardecer capitalino.",address:"Malecón de Managua",emergency:"118 (Policía) / 128 (Bomberos)",info:"Zona segura con vigilancia. Buena para visitar al atardecer."},
+  {id:13,categories:["historia","cultura"],name:"Ruinas de León Viejo",dept:"León",emoji:"🏚️",lat:12.400547,lng:-86.617797,imgs:[],rules:["No subir ni tocar las estructuras arqueológicas","No remover piedras ni objetos del sitio","Usar protector solar, el sitio tiene poca sombra"],desc:"Primeras ruinas coloniales de Nicaragua, declaradas Patrimonio Mundial de la UNESCO.",address:"La Paz Centro, León",emergency:"118 (Policía) / 128 (Bomberos)",info:"Museo de sitio con guías incluidos en la entrada."},
+  {id:14,categories:["naturaleza","senderismo"],name:"Reserva Miraflor",dept:"Estelí",emoji:"🦋",lat:13.21,lng:-86.28,imgs:[],rules:["Contratar guías de la comunidad local","Mantenerse en los senderos señalizados","No encender fogatas fuera de las zonas permitidas"],desc:"Reserva natural comunitaria con cascadas, flora y fauna únicas de la región norte.",address:"Comunidad Miraflor, Estelí",emergency:"118 (Policía) / 128 (Bomberos)",info:"Turismo comunitario. Hospedaje rural disponible."},
+  {id:15,categories:["naturaleza","senderismo","aventura"],name:"Peñas Blancas",dept:"Jinotega",emoji:"🌄",lat:13.2527,lng:-85.6640,imgs:[],rules:["Ingresar solo con guía, zona de niebla y difícil acceso","Llevar ropa de abrigo, la temperatura es fría","Respetar la vida silvestre y no acercarse demasiado"],desc:"Reserva natural en las montañas del norte con vistas espectaculares y biodiversidad única.",address:"Macizo de Peñas Blancas, Jinotega",emergency:"118 (Policía) / 128 (Bomberos)",info:"Clima frío, llevar ropa abrigada."},
+  {id:16,categories:["aventura","relajacion","playa"],name:"Playa Popoyo",dept:"Rivas",emoji:"🌅",lat:11.4731,lng:-86.1270,imgs:[],rules:["Respetar la prioridad de los surfistas locales en el agua","Llevá tu propia bolsa de basura","Cuidado con las corrientes fuertes, consultar con locales"],desc:"Playa reconocida internacionalmente como uno de los mejores spots de surf del país.",address:"Tola, Rivas",emergency:"118 (Policía) / 128 (Bomberos)",info:"Buen oleaje todo el año. Hospedajes frente al mar."},
 ];
 
 const DEFAULT_EVENTS = [
@@ -629,12 +662,29 @@ const EVENT_TRANSLATIONS_EN = {
   2:{name:"Feast of San Jerónimo",desc:"Main day of Nicaragua's longest patron saint festival, with the Tata Chombo procession through the streets of Masaya."},
   3:{name:"La Gritería",desc:"Religious and folk celebration honoring the Immaculate Conception, with altars, chants, and fireworks nationwide."}
 };
+const CATEGORIES = [
+  {key:"naturaleza", es:"🌿 Naturaleza", en:"🌿 Nature"},
+  {key:"senderismo", es:"🥾 Senderismo", en:"🥾 Hiking"},
+  {key:"aventura", es:"🪂 Aventura", en:"🪂 Adventure"},
+  {key:"cultura", es:"🎭 Cultura", en:"🎭 Culture"},
+  {key:"gastronomia", es:"🍽️ Gastronomía", en:"🍽️ Gastronomy"},
+  {key:"relajacion", es:"🧘 Relajación", en:"🧘 Relaxation"},
+  {key:"historia", es:"🏛️ Historia", en:"🏛️ History"},
+  {key:"playa", es:"🏖️ Playa", en:"🏖️ Beach"}
+];
+function categoryLabel(key){
+  const c = CATEGORIES.find(x=>x.key===key);
+  if(!c) return key;
+  return currentLang==="en" ? c.en : c.es;
+}
+let selectedCategories = [];
 const UI_STRINGS_EN = {
   "Buscar lugar o departamento...":"Search for a place or department...",
   "🎲 Sorpréndeme":"🎲 Surprise me",
   "📅 Eventos":"📅 Events",
   "🌍 Mapa":"🌍 Map",
   "❤️ Favoritos":"❤️ Favorites",
+  "🎯 Categorías":"🎯 Categories",
   "Todos":"All",
   "Sin valorar":"No ratings yet",
   "📤 Compartir este lugar":"📤 Share this place",
@@ -696,7 +746,7 @@ function loadLanguage(){
 
 let places=[], ratings={}, comments={}, isAdmin=false;
 let selectedDept="Todos", searchQ="";
-let editingId=null, editImgs=[];
+let editingId=null, editImgs=[], editCategories=[];
 let viewingId=null, tempRating=0, galIdx=0;
 let deferredPrompt=null, installDismissed=false;
 let fsReady=false;
@@ -935,15 +985,21 @@ function renderStatsPanel(){
 }
 
 /* ---- FILTRO COMPARTIDO (usado por render y sorpréndeme) ---- */
+function categoryMatchCount(p){
+  if(selectedCategories.length===0) return 0;
+  const cats = p.categories||[];
+  return selectedCategories.filter(c=>cats.includes(c)).length;
+}
 function getFilteredPlaces(){
-  return places.filter(p=>(selectedDept==="Todos"||p.dept===selectedDept)&&(!showFavsOnly||isFavorite(p.id))&&(normalizeText(p.name).includes(normalizeText(searchQ))||normalizeText(p.dept).includes(normalizeText(searchQ))||normalizeText(p.desc).includes(normalizeText(searchQ))));
+  return places.filter(p=>(selectedDept==="Todos"||p.dept===selectedDept)&&(!showFavsOnly||isFavorite(p.id))&&(selectedCategories.length===0||categoryMatchCount(p)>0)&&(normalizeText(p.name).includes(normalizeText(searchQ))||normalizeText(p.dept).includes(normalizeText(searchQ))||normalizeText(p.desc).includes(normalizeText(searchQ))));
 }
 
 /* ---- ORDENAR RESULTADOS ---- */
 function setSortBy(val){ sortBy=val; render(); }
 function applySort(list){
-  if(sortBy==="rating") return list.sort((a,b)=>getAvg(b.id)-getAvg(a.id)||getCount(b.id)-getCount(a.id));
-  if(sortBy==="az") return list.sort((a,b)=>a.name.localeCompare(b.name));
+  if(sortBy==="rating") list=list.sort((a,b)=>getAvg(b.id)-getAvg(a.id)||getCount(b.id)-getCount(a.id));
+  else if(sortBy==="az") list=list.sort((a,b)=>a.name.localeCompare(b.name));
+  if(selectedCategories.length>0) list=list.sort((a,b)=>categoryMatchCount(b)-categoryMatchCount(a));
   return list;
 }
 
@@ -1282,6 +1338,34 @@ function openMap(){
   }, 150);
 }
 
+/* ---- FILTRO DE CATEGORÍAS ---- */
+function openCategoryFilter(){
+  document.getElementById("catModalTitle").textContent = t("🎯 Categorías");
+  document.getElementById("catModalSubtitle").textContent = currentLang==="en"
+    ? "Pick one or more — we'll show the best matches first"
+    : "Elegí una o varias — te mostramos primero los lugares que más coinciden";
+  renderCategoryOptions();
+  document.getElementById("categoryOverlay").classList.add("open");
+}
+function renderCategoryOptions(){
+  document.getElementById("categoryOptionsList").innerHTML = CATEGORIES.map(c=>{
+    const on = selectedCategories.includes(c.key);
+    const label = currentLang==="en" ? c.en : c.es;
+    return `<div class="cat-option ${on?'selected':''}" onclick="toggleCategory('${c.key}')"><span>${label}</span><span class="check">${on?'✓':''}</span></div>`;
+  }).join("");
+}
+function toggleCategory(key){
+  if(selectedCategories.includes(key)) selectedCategories = selectedCategories.filter(k=>k!==key);
+  else selectedCategories.push(key);
+  renderCategoryOptions();
+}
+function clearCategoryFilter(){
+  selectedCategories = [];
+  renderCategoryOptions();
+  closeOverlay("categoryOverlay");
+  render();
+}
+
 /* ---- CLIMA (Open-Meteo, sin llave de API) ---- */
 function weatherCodeInfo(code){
   const map = {
@@ -1388,7 +1472,7 @@ function render(){
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
 
-  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-surprise" onclick="surpriseMe()">${t("🎲 Sorpréndeme")}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`+depts.map(d=>`<div class="chip ${d===selectedDept?'active':''}" onclick="selectedDept='${d}';render()">${d==="Todos"?t("Todos"):d}</div>`).join("");
+  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-surprise" onclick="surpriseMe()">${t("🎲 Sorpréndeme")}</div><div class="chip chip-cat ${selectedCategories.length?'active':''}" onclick="openCategoryFilter()">${t("🎯 Categorías")}${selectedCategories.length?' ('+selectedCategories.length+')':''}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`+depts.map(d=>`<div class="chip ${d===selectedDept?'active':''}" onclick="selectedDept='${d}';render()">${d==="Todos"?t("Todos"):d}</div>`).join("");
   const totalRatings = places.reduce((sum,p)=>sum+getCount(p.id),0);
   const firstStatsRender = !statsAnimatedOnce && fsReady;
   const placesWord = currentLang==="en" ? (filtered.length!==1?"places found":"place found") : `lugar${filtered.length!==1?'es':''} encontrado${filtered.length!==1?'s':''}`;
@@ -1430,6 +1514,7 @@ function render(){
         <div class="card-dept">${highlightMatch(p.dept, searchQ)}</div>
         <div class="card-name">${highlightMatch(tPlaceName(p), searchQ)}</div>
         <div class="stars-row"><div class="stars">${starsHtml}</div><span class="rcount">${cnt>0?avg.toFixed(1)+' ('+cnt+')':t("Sin valorar")}</span></div>
+        ${selectedCategories.length>0?`<div class="cat-match-tag">🎯 ${categoryMatchCount(p)}/${selectedCategories.length} ${currentLang==="en"?"match":"coincide"}</div>`:''}
         ${pnHtml}
       </div>
       ${isAdmin?`<div class="card-admin-btns" onclick="event.stopPropagation()"><button class="btn-edit" onclick="openEdit(${p.id})">✏️ Editar</button><button class="btn-del" onclick="deletePlace(${p.id})">🗑️ Eliminar</button></div>`:''}
@@ -1441,7 +1526,7 @@ function render(){
 function applyModalTranslations(){
   if(viewingId){
     const p = places.find(x=>x.id===viewingId);
-    if(p) renderRules(p);
+    if(p){ renderRules(p); renderPlaceCategoryTags(p); }
   }
   const shareBtn = document.getElementById("share-btn");
   if(shareBtn) shareBtn.textContent = t("📤 Compartir este lugar");
@@ -1474,6 +1559,7 @@ function openView(id){
   }
   renderInfobox(p);
   renderRules(p);
+  renderPlaceCategoryTags(p);
   updateItinBtn();
   applyModalTranslations();
   loadWeather(p);
@@ -1486,6 +1572,11 @@ function openView(id){
   document.getElementById("viewOverlay").classList.add("open");
 }
 
+function renderPlaceCategoryTags(p){
+  const box=document.getElementById("vm-categories");
+  const cats=p.categories||[];
+  box.innerHTML=cats.map(k=>`<span class="cat-checkbox on" style="cursor:default">${categoryLabel(k)}</span>`).join("");
+}
 function renderRules(p){
   const box=document.getElementById("vm-rules");
   const rules=tPlaceRules(p);
@@ -1736,7 +1827,7 @@ function useMyLocation(){
   );
 }
 function openAdd(){
-  editingId=null; editImgs=[];
+  editingId=null; editImgs=[]; editCategories=[];
   document.getElementById("editTitle").textContent="Agregar lugar";
   document.getElementById("e-name").value="";
   document.getElementById("e-dept").value="";
@@ -1749,13 +1840,14 @@ function openAdd(){
   document.getElementById("e-emergency").value="";
   document.getElementById("e-info").value="";
   renderEditGallery();
+  renderEditCategories();
   document.getElementById("editOverlay").classList.add("open");
   setTimeout(()=>document.getElementById("e-name").focus(),350);
 }
 
 function openEdit(id){
   const p=places.find(x=>x.id===id);
-  editingId=id; editImgs=[...(p.imgs||[])];
+  editingId=id; editImgs=[...(p.imgs||[])]; editCategories=[...(p.categories||[])];
   document.getElementById("editTitle").textContent="Editar lugar";
   document.getElementById("e-name").value=p.name;
   document.getElementById("e-dept").value=p.dept;
@@ -1768,7 +1860,22 @@ function openEdit(id){
   document.getElementById("e-emergency").value=p.emergency||"";
   document.getElementById("e-info").value=p.info||"";
   renderEditGallery();
+  renderEditCategories();
   document.getElementById("editOverlay").classList.add("open");
+}
+
+function renderEditCategories(){
+  const box=document.getElementById("e-categories");
+  if(!box) return;
+  box.innerHTML=CATEGORIES.map(c=>{
+    const on=editCategories.includes(c.key);
+    return `<div class="cat-checkbox ${on?'on':''}" onclick="toggleEditCategory('${c.key}')">${c.es}</div>`;
+  }).join("");
+}
+function toggleEditCategory(key){
+  if(editCategories.includes(key)) editCategories=editCategories.filter(k=>k!==key);
+  else editCategories.push(key);
+  renderEditCategories();
 }
 
 function savePlace(){
@@ -1791,11 +1898,11 @@ function savePlace(){
   let savedPlace;
   if(editingId){
     const idx=places.findIndex(x=>x.id===editingId);
-    places[idx]={...places[idx],name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs};
+    places[idx]={...places[idx],name,dept,emoji,desc,rules,categories:editCategories,address,lat,lng,emergency,info,imgs:editImgs};
     savedPlace = places[idx];
     showToast("Lugar actualizado ✅");
   }else{
-    savedPlace = {id:Date.now(),name,dept,emoji,desc,rules,address,lat,lng,emergency,info,imgs:editImgs,views:0};
+    savedPlace = {id:Date.now(),name,dept,emoji,desc,rules,categories:editCategories,address,lat,lng,emergency,info,imgs:editImgs,views:0};
     places.push(savedPlace);
     showToast("Lugar agregado ✅");
   }
