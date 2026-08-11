@@ -89,6 +89,8 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .chip.chip-map{background:#2E6FD9;color:#fff;border-color:#2E6FD9;font-weight:700}
 .chip.chip-cat{background:var(--surface);color:var(--text2);border-color:#8E5CD9;font-weight:700}
 .chip.chip-cat.active{background:#8E5CD9;color:#fff;border-color:#8E5CD9}
+.chip.chip-dept{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
+.chip.chip-dept.active{background:var(--green);color:#fff;border-color:var(--green)}
 .cat-option{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);margin-bottom:10px;cursor:pointer;font-size:14px;font-weight:600;color:var(--text)}
 .cat-checkbox-list{display:flex;flex-wrap:wrap;gap:8px}
 .cat-checkbox{padding:8px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer}
@@ -481,6 +483,19 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
   </div>
 </div>
 
+<!-- DEPARTMENT FILTER MODAL -->
+<div class="overlay edit-overlay" id="departmentOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 id="deptModalTitle" style="margin:0">📍 Departamento</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('departmentOverlay')">Cerrar</button>
+      </div>
+      <div id="departmentOptionsList"></div>
+    </div>
+  </div>
+</div>
+
 <!-- EDIT EVENT MODAL (admin) -->
 <div class="overlay edit-overlay" id="editEventOverlay">
   <div class="sheet edit-sheet">
@@ -685,6 +700,8 @@ const UI_STRINGS_EN = {
   "🌍 Mapa":"🌍 Map",
   "❤️ Favoritos":"❤️ Favorites",
   "🎯 Categorías":"🎯 Categories",
+  "📍 Departamento":"📍 Department",
+  "Departamento":"Department",
   "Todos":"All",
   "Sin valorar":"No ratings yet",
   "📤 Compartir este lugar":"📤 Share this place",
@@ -985,9 +1002,22 @@ function renderStatsPanel(){
 }
 
 /* ---- FILTRO COMPARTIDO (usado por render y sorpréndeme) ---- */
+const PLACE_CATEGORIES_DEFAULT = {
+  1:["cultura","historia"], 2:["aventura","naturaleza","senderismo"], 3:["naturaleza","relajacion"],
+  4:["naturaleza","senderismo","aventura"], 5:["cultura","historia","gastronomia"], 6:["aventura","naturaleza","senderismo"],
+  7:["naturaleza","senderismo"], 8:["aventura","relajacion","playa"], 9:["aventura","naturaleza"],
+  10:["cultura","gastronomia"], 11:["relajacion","playa","naturaleza"], 12:["relajacion","cultura"],
+  13:["historia","cultura"], 14:["naturaleza","senderismo"], 15:["naturaleza","senderismo","aventura"],
+  16:["aventura","relajacion","playa"]
+};
+function tPlaceCategories(p){
+  if(p.categories && p.categories.length) return p.categories;
+  if(PLACE_CATEGORIES_DEFAULT[p.id]) return PLACE_CATEGORIES_DEFAULT[p.id];
+  return [];
+}
 function categoryMatchCount(p){
   if(selectedCategories.length===0) return 0;
-  const cats = p.categories||[];
+  const cats = tPlaceCategories(p);
   return selectedCategories.filter(c=>cats.includes(c)).length;
 }
 function getFilteredPlaces(){
@@ -1366,6 +1396,26 @@ function clearCategoryFilter(){
   render();
 }
 
+/* ---- FILTRO DE DEPARTAMENTO (panel, ya no fila larga de chips) ---- */
+function openDepartmentFilter(){
+  document.getElementById("deptModalTitle").textContent = t("📍 Departamento");
+  renderDepartmentOptions();
+  document.getElementById("departmentOverlay").classList.add("open");
+}
+function renderDepartmentOptions(){
+  const depts = getDepts();
+  document.getElementById("departmentOptionsList").innerHTML = depts.map(d=>{
+    const on = d===selectedDept;
+    const label = d==="Todos" ? t("Todos") : d;
+    return `<div class="cat-option ${on?'selected':''}" onclick="selectDepartmentOption('${d}')"><span>${label}</span><span class="check">${on?'✓':''}</span></div>`;
+  }).join("");
+}
+function selectDepartmentOption(d){
+  selectedDept = d;
+  closeOverlay("departmentOverlay");
+  render();
+}
+
 /* ---- CLIMA (Open-Meteo, sin llave de API) ---- */
 function weatherCodeInfo(code){
   const map = {
@@ -1472,7 +1522,7 @@ function render(){
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
 
-  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-surprise" onclick="surpriseMe()">${t("🎲 Sorpréndeme")}</div><div class="chip chip-cat ${selectedCategories.length?'active':''}" onclick="openCategoryFilter()">${t("🎯 Categorías")}${selectedCategories.length?' ('+selectedCategories.length+')':''}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`+depts.map(d=>`<div class="chip ${d===selectedDept?'active':''}" onclick="selectedDept='${d}';render()">${d==="Todos"?t("Todos"):d}</div>`).join("");
+  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-surprise" onclick="surpriseMe()">${t("🎲 Sorpréndeme")}</div><div class="chip chip-cat ${selectedCategories.length?'active':''}" onclick="openCategoryFilter()">${t("🎯 Categorías")}${selectedCategories.length?' ('+selectedCategories.length+')':''}</div><div class="chip chip-dept ${selectedDept!=='Todos'?'active':''}" onclick="openDepartmentFilter()">📍 ${selectedDept==='Todos'?t('Departamento'):selectedDept}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`;
   const totalRatings = places.reduce((sum,p)=>sum+getCount(p.id),0);
   const firstStatsRender = !statsAnimatedOnce && fsReady;
   const placesWord = currentLang==="en" ? (filtered.length!==1?"places found":"place found") : `lugar${filtered.length!==1?'es':''} encontrado${filtered.length!==1?'s':''}`;
@@ -1574,7 +1624,7 @@ function openView(id){
 
 function renderPlaceCategoryTags(p){
   const box=document.getElementById("vm-categories");
-  const cats=p.categories||[];
+  const cats=tPlaceCategories(p);
   box.innerHTML=cats.map(k=>`<span class="cat-checkbox on" style="cursor:default">${categoryLabel(k)}</span>`).join("");
 }
 function renderRules(p){
@@ -1847,7 +1897,7 @@ function openAdd(){
 
 function openEdit(id){
   const p=places.find(x=>x.id===id);
-  editingId=id; editImgs=[...(p.imgs||[])]; editCategories=[...(p.categories||[])];
+  editingId=id; editImgs=[...(p.imgs||[])]; editCategories=[...tPlaceCategories(p)];
   document.getElementById("editTitle").textContent="Editar lugar";
   document.getElementById("e-name").value=p.name;
   document.getElementById("e-dept").value=p.dept;
