@@ -611,7 +611,13 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         <h2 style="margin-bottom:6px" id="authStep2Title">Revisá tu correo</h2>
         <p style="font-size:14px;color:var(--text3);margin-bottom:4px" id="authStep2Lead">Le mandamos un enlace a</p>
         <p id="authStep2Email" style="font-weight:700;margin-bottom:20px"></p>
-        <p style="font-size:13px;color:var(--text3);margin-bottom:20px" id="authStep2Hint">Tocá el enlace desde este mismo celular para quedar identificado. Podés cerrar esta ventana.</p>
+        <p style="font-size:13px;color:var(--text3);margin-bottom:14px" id="authStep2Hint">Tocá el enlace desde este mismo celular para quedar identificado. Podés cerrar esta ventana.</p>
+        <div style="background:var(--green-bg);border-radius:12px;padding:12px 14px;margin-bottom:16px;text-align:left">
+          <p style="font-size:12.5px;color:var(--green-dark);margin:0" id="authSpamHint">📂 Si no lo ves en unos minutos, revisá la carpeta de spam o correo no deseado — a veces cae ahí las primeras veces.</p>
+        </div>
+        <p style="margin-bottom:14px">
+          <a href="#" id="authResendLink" onclick="resendMagicLink();return false" style="font-size:13px;color:var(--green-dark);font-weight:700;text-decoration:underline">¿No te llegó? Reenviar enlace</a>
+        </p>
         <button class="btn-cancel" style="width:100%" onclick="closeOverlay('authOverlay')" id="authStep2CloseBtn">Cerrar</button>
       </div>
     </div>
@@ -850,6 +856,8 @@ function applyAuthTranslations(){
   document.getElementById("authStep2Lead").textContent = en ? "We sent a link to" : "Le mandamos un enlace a";
   document.getElementById("authStep2Hint").textContent = en ? "Tap the link from this same phone/browser to finish signing in. You can close this window." : "Tocá el enlace desde este mismo celular para quedar identificado. Podés cerrar esta ventana.";
   document.getElementById("authStep2CloseBtn").textContent = en ? "Close" : "Cerrar";
+  document.getElementById("authSpamHint").textContent = en ? "📂 If you don't see it in a few minutes, check your spam or junk folder — it sometimes lands there the first few times." : "📂 Si no lo ves en unos minutos, revisá la carpeta de spam o correo no deseado — a veces cae ahí las primeras veces.";
+  document.getElementById("authResendLink").textContent = en ? "Didn't get it? Resend link" : "¿No te llegó? Reenviar enlace";
 }
 
 function sendMagicLink(){
@@ -884,6 +892,29 @@ function sendMagicLink(){
       errEl.textContent = en?"Couldn't send the link. Please try again.":"No se pudo enviar el enlace. Probá de nuevo.";
     }
     errEl.style.display="block";
+  });
+}
+
+function resendMagicLink(){
+  const en = currentLang==="en";
+  let email = null;
+  try{ email = localStorage.getItem(EMAIL_KEY); }catch(e){}
+  if(!email){ email = document.getElementById("authStep2Email").textContent.trim(); }
+  if(!email || !firebaseOk || typeof firebase.auth !== "function"){
+    showToast(en?"Couldn't resend right now":"No se pudo reenviar ahora mismo");
+    return;
+  }
+  const link = document.getElementById("authResendLink");
+  const originalText = link.textContent;
+  link.textContent = en?"Sending...":"Enviando...";
+  const actionCodeSettings = { url: window.location.href.split("?")[0].split("#")[0], handleCodeInApp: true };
+  firebase.auth().sendSignInLinkToEmail(email, actionCodeSettings).then(()=>{
+    showToast(en?"Link resent ✅":"Enlace reenviado ✅");
+    link.textContent = originalText;
+  }).catch(err=>{
+    console.error("Error reenviando enlace:", err);
+    showToast(en?"Couldn't resend the link":"No se pudo reenviar el enlace");
+    link.textContent = originalText;
   });
 }
 
