@@ -618,6 +618,9 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         <p style="margin-bottom:14px">
           <a href="#" id="authResendLink" onclick="resendMagicLink();return false" style="font-size:13px;color:var(--green-dark);font-weight:700;text-decoration:underline">¿No te llegó? Reenviar enlace</a>
         </p>
+        <p style="margin-bottom:14px">
+          <a href="#" id="authFixEmailLink" onclick="backToEditEmail();return false" style="font-size:12px;color:var(--text3);text-decoration:underline">¿Correo equivocado? Corregirlo</a>
+        </p>
         <button class="btn-cancel" style="width:100%" onclick="closeOverlay('authOverlay')" id="authStep2CloseBtn">Cerrar</button>
       </div>
     </div>
@@ -858,6 +861,7 @@ function applyAuthTranslations(){
   document.getElementById("authStep2CloseBtn").textContent = en ? "Close" : "Cerrar";
   document.getElementById("authSpamHint").textContent = en ? "📂 If you don't see it in a few minutes, check your spam or junk folder — it sometimes lands there the first few times." : "📂 Si no lo ves en unos minutos, revisá la carpeta de spam o correo no deseado — a veces cae ahí las primeras veces.";
   document.getElementById("authResendLink").textContent = en ? "Didn't get it? Resend link" : "¿No te llegó? Reenviar enlace";
+  document.getElementById("authFixEmailLink").textContent = en ? "Wrong email? Fix it" : "¿Correo equivocado? Corregirlo";
 }
 
 function sendMagicLink(){
@@ -895,6 +899,13 @@ function sendMagicLink(){
     }
     errEl.style.display="block";
   });
+}
+
+function backToEditEmail(){
+  document.getElementById("authStep2").style.display="none";
+  document.getElementById("authStep1").style.display="block";
+  document.getElementById("authEmail").focus();
+  document.getElementById("authEmail").select();
 }
 
 function resendMagicLink(){
