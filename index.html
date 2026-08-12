@@ -888,8 +888,10 @@ function sendMagicLink(){
       errEl.textContent = en?"This domain isn't authorized in Firebase yet":"Este dominio todavía no está autorizado en Firebase";
     }else if(err.code === "auth/invalid-email"){
       errEl.textContent = en?"Invalid email":"Correo inválido";
+    }else if(err.code === "auth/quota-exceeded" || err.code === "auth/too-many-requests"){
+      errEl.textContent = en?"Too many attempts for today, try again tomorrow":"Se superó el límite de envíos de hoy, probá mañana";
     }else{
-      errEl.textContent = en?"Couldn't send the link. Please try again.":"No se pudo enviar el enlace. Probá de nuevo.";
+      errEl.textContent = (en?"Couldn't send the link":"No se pudo enviar el enlace")+" ("+(err.code||err.message||"error desconocido")+")";
     }
     errEl.style.display="block";
   });
@@ -913,7 +915,7 @@ function resendMagicLink(){
     link.textContent = originalText;
   }).catch(err=>{
     console.error("Error reenviando enlace:", err);
-    showToast(en?"Couldn't resend the link":"No se pudo reenviar el enlace");
+    showToast((en?"Couldn't resend the link":"No se pudo reenviar el enlace")+" ("+(err.code||"?")+")");
     link.textContent = originalText;
   });
 }
