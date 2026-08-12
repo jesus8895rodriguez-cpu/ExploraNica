@@ -103,7 +103,6 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .cat-option.selected .check{background:#8E5CD9;border-color:#8E5CD9;color:#fff}
 .cat-match-tag{display:inline-flex;align-items:center;gap:4px;background:#8E5CD920;color:#8E5CD9;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:4px}
 .chip.chip-lang{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
-.sort-select{margin-left:auto;font-size:12px;padding:5px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:inherit;flex-shrink:0}
 .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
 
 /* STATS */
@@ -789,7 +788,6 @@ let fsReady=false;
 let currentUser=null, authMode="login";
 let statsAnimatedOnce=false;
 let currentLang = "es";
-let sortBy="default";
 let favorites=[], showFavsOnly=false;
 
 /* ---- FIREBASE SETUP ---- */
@@ -1145,10 +1143,7 @@ function getFilteredPlaces(){
 }
 
 /* ---- ORDENAR RESULTADOS ---- */
-function setSortBy(val){ sortBy=val; render(); }
 function applySort(list){
-  if(sortBy==="rating") list=list.sort((a,b)=>getAvg(b.id)-getAvg(a.id)||getCount(b.id)-getCount(a.id));
-  else if(sortBy==="az") list=list.sort((a,b)=>a.name.localeCompare(b.name));
   if(selectedCategories.length>0) list=list.sort((a,b)=>categoryMatchCount(b)-categoryMatchCount(a));
   return list;
 }
@@ -1650,10 +1645,7 @@ function render(){
   const firstStatsRender = !statsAnimatedOnce && fsReady;
   const placesWord = currentLang==="en" ? (filtered.length!==1?"places found":"place found") : `lugar${filtered.length!==1?'es':''} encontrado${filtered.length!==1?'s':''}`;
   const ratingsWord = currentLang==="en" ? `⭐ <b id="statRatingsNum">${firstStatsRender?0:totalRatings}</b> rating${totalRatings!==1?'s':''} in the app` : `⭐ <b id="statRatingsNum">${firstStatsRender?0:totalRatings}</b> valoracion${totalRatings!==1?'es':''} en la app`;
-  const sortOptions = currentLang==="en"
-    ? `<option value="default" ${sortBy==='default'?'selected':''}>Relevance</option><option value="rating" ${sortBy==='rating'?'selected':''}>⭐ Top rated</option><option value="az" ${sortBy==='az'?'selected':''}>A-Z</option>`
-    : `<option value="default" ${sortBy==='default'?'selected':''}>Relevancia</option><option value="rating" ${sortBy==='rating'?'selected':''}>⭐ Mejor valorado</option><option value="az" ${sortBy==='az'?'selected':''}>A-Z</option>`;
-  document.getElementById("stats").innerHTML=`<span class="stat"><b id="statPlacesNum">${firstStatsRender?0:filtered.length}</b> ${placesWord}</span>${totalRatings>0?`<span class="stat stat-secondary">${ratingsWord}</span>`:''}<select class="sort-select" onchange="setSortBy(this.value)">${sortOptions}</select>`;
+  document.getElementById("stats").innerHTML=`<span class="stat"><b id="statPlacesNum">${firstStatsRender?0:filtered.length}</b> ${placesWord}</span>${totalRatings>0?`<span class="stat stat-secondary">${ratingsWord}</span>`:''}`;
   if(firstStatsRender){
     statsAnimatedOnce=true;
     animateCountUp("statPlacesNum", filtered.length);
