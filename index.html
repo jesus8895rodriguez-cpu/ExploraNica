@@ -604,9 +604,6 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
           <button class="btn-cancel" onclick="closeOverlay('authOverlay')" id="authCancelBtn">Cancelar</button>
           <button class="btn-save" id="authSendBtn" onclick="sendMagicLink()">Enviar enlace de acceso</button>
         </div>
-        <p style="text-align:center;margin-top:14px">
-          <a href="#" id="authSkipLink" onclick="doSimpleAuthFallback();return false" style="font-size:12px;color:var(--text3);text-decoration:underline">Identificarme solo con mi nombre</a>
-        </p>
       </div>
 
       <div id="authStep2" style="display:none;text-align:center">
@@ -849,7 +846,6 @@ function applyAuthTranslations(){
   document.getElementById("authEmailLabel").textContent = en ? "Your email" : "Tu correo";
   document.getElementById("authCancelBtn").textContent = en ? "Cancel" : "Cancelar";
   document.getElementById("authSendBtn").textContent = en ? "Send sign-in link" : "Enviar enlace de acceso";
-  document.getElementById("authSkipLink").textContent = en ? "Sign in with just my name" : "Identificarme solo con mi nombre";
   document.getElementById("authStep2Title").textContent = en ? "Check your email" : "Revisá tu correo";
   document.getElementById("authStep2Lead").textContent = en ? "We sent a link to" : "Le mandamos un enlace a";
   document.getElementById("authStep2Hint").textContent = en ? "Tap the link from this same phone/browser to finish signing in. You can close this window." : "Tocá el enlace desde este mismo celular para quedar identificado. Podés cerrar esta ventana.";
@@ -864,7 +860,7 @@ function sendMagicLink(){
   if(!name || name.length<2){ errEl.textContent = en?"Write your name":"Escribí tu nombre"; errEl.style.display="block"; return; }
   if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ errEl.textContent = en?"Enter a valid email":"Escribí un correo válido"; errEl.style.display="block"; return; }
   if(!firebaseOk || typeof firebase.auth !== "function"){
-    errEl.textContent = en?"No connection right now. You can sign in with just your name below.":"Sin conexión ahora mismo. Podés identificarte solo con tu nombre abajo.";
+    errEl.textContent = en?"No connection right now. Try again in a moment.":"Sin conexión ahora mismo. Probá de nuevo en un momento.";
     errEl.style.display="block";
     return;
   }
@@ -885,25 +881,10 @@ function sendMagicLink(){
     }else if(err.code === "auth/invalid-email"){
       errEl.textContent = en?"Invalid email":"Correo inválido";
     }else{
-      errEl.textContent = en?"Couldn't send the link. You can sign in with just your name below.":"No se pudo enviar el enlace. Podés identificarte solo con tu nombre abajo.";
+      errEl.textContent = en?"Couldn't send the link. Please try again.":"No se pudo enviar el enlace. Probá de nuevo.";
     }
     errEl.style.display="block";
   });
-}
-
-function doSimpleAuthFallback(){
-  const name = document.getElementById("authName").value.trim();
-  const errEl = document.getElementById("authErr");
-  const en = currentLang==="en";
-  if(!name || name.length<2){ errEl.textContent = en?"Write your name":"Escribí tu nombre"; errEl.style.display="block"; return; }
-  currentUser = { name };
-  try{ localStorage.setItem(NAME_KEY, name); }catch(e){}
-  closeOverlay("authOverlay");
-  showToast(`¡Hola, ${name}! ✅`);
-  render();
-  if(document.getElementById("viewOverlay").classList.contains("open")){
-    document.getElementById("commentLoginPrompt").style.display = "none";
-  }
 }
 
 /* Detecta si volvimos a la app desde el enlace del correo, y completa el acceso */
