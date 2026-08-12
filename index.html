@@ -465,32 +465,27 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 </div>
 
 <!-- CATEGORY FILTER MODAL -->
-<div class="overlay edit-overlay" id="categoryOverlay">
+<div class="overlay edit-overlay" id="filtersOverlay">
   <div class="sheet edit-sheet">
     <div class="sheet-body">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <h2 id="catModalTitle" style="margin:0">🎯 Categorías</h2>
-        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('categoryOverlay')">Cerrar</button>
+        <h2 id="filtersModalTitle" style="margin:0">🎚️ Filtros Avanzados</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('filtersOverlay')">Cerrar</button>
       </div>
       <p id="catModalSubtitle" style="font-size:13px;color:var(--text3);margin-bottom:14px">Elegí una o varias — te mostramos primero los lugares que más coinciden</p>
-      <div id="categoryOptionsList"></div>
-      <div class="edit-actions">
-        <button class="btn-cancel" onclick="clearCategoryFilter()">Limpiar</button>
-        <button class="btn-save" onclick="closeOverlay('categoryOverlay');render()">Ver resultados</button>
-      </div>
-    </div>
-  </div>
-</div>
 
-<!-- DEPARTMENT FILTER MODAL -->
-<div class="overlay edit-overlay" id="departmentOverlay">
-  <div class="sheet edit-sheet">
-    <div class="sheet-body">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-        <h2 id="deptModalTitle" style="margin:0">📍 Departamento</h2>
-        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('departmentOverlay')">Cerrar</button>
-      </div>
+      <button class="btn-share" id="filtersSurpriseBtn" style="width:100%;justify-content:center;background:var(--amber);border-color:var(--amber);color:#fff;margin-bottom:18px" onclick="closeOverlay('filtersOverlay');surpriseMe()">🎲 Sorpréndeme</button>
+
+      <h3 id="filtersCatTitle" style="font-size:14px;margin-bottom:10px">🎯 Categorías</h3>
+      <div id="categoryOptionsList"></div>
+
+      <h3 id="filtersDeptTitle" style="font-size:14px;margin:20px 0 10px">📍 Departamento</h3>
       <div id="departmentOptionsList"></div>
+
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="clearAllFilters()" id="filtersClearBtn">Limpiar todo</button>
+        <button class="btn-save" onclick="closeOverlay('filtersOverlay');render()" id="filtersApplyBtn">Ver resultados</button>
+      </div>
     </div>
   </div>
 </div>
@@ -723,6 +718,7 @@ const UI_STRINGS_EN = {
   "🌍 Mapa":"🌍 Map",
   "❤️ Favoritos":"❤️ Favorites",
   "🎯 Categorías":"🎯 Categories",
+  "Filtros Avanzados":"Advanced Filters",
   "📍 Departamento":"📍 Department",
   "Departamento":"Department",
   "Todos":"All",
@@ -785,7 +781,7 @@ function loadLanguage(){
 }
 
 let places=[], ratings={}, comments={}, isAdmin=false;
-let selectedDept="Todos", searchQ="";
+let selectedDepts=[], searchQ="";
 let editingId=null, editImgs=[], editCategories=[];
 let viewingId=null, tempRating=0, galIdx=0;
 let deferredPrompt=null, installDismissed=false;
@@ -1145,7 +1141,7 @@ function categoryMatchCount(p){
   return selectedCategories.filter(c=>cats.includes(c)).length;
 }
 function getFilteredPlaces(){
-  return places.filter(p=>(selectedDept==="Todos"||p.dept===selectedDept)&&(!showFavsOnly||isFavorite(p.id))&&(selectedCategories.length===0||categoryMatchCount(p)>0)&&(normalizeText(p.name).includes(normalizeText(searchQ))||normalizeText(p.dept).includes(normalizeText(searchQ))||normalizeText(p.desc).includes(normalizeText(searchQ))));
+  return places.filter(p=>(selectedDepts.length===0||selectedDepts.includes(p.dept))&&(!showFavsOnly||isFavorite(p.id))&&(selectedCategories.length===0||categoryMatchCount(p)>0)&&(normalizeText(p.name).includes(normalizeText(searchQ))||normalizeText(p.dept).includes(normalizeText(searchQ))||normalizeText(p.desc).includes(normalizeText(searchQ))));
 }
 
 /* ---- ORDENAR RESULTADOS ---- */
@@ -1493,13 +1489,19 @@ function openMap(){
 }
 
 /* ---- FILTRO DE CATEGORÍAS ---- */
-function openCategoryFilter(){
-  document.getElementById("catModalTitle").textContent = t("🎯 Categorías");
+function openFiltersModal(){
+  document.getElementById("filtersModalTitle").textContent = t("🎚️ Filtros Avanzados");
+  document.getElementById("filtersCatTitle").textContent = t("🎯 Categorías");
+  document.getElementById("filtersDeptTitle").textContent = t("📍 Departamento");
   document.getElementById("catModalSubtitle").textContent = currentLang==="en"
     ? "Pick one or more — we'll show the best matches first"
     : "Elegí una o varias — te mostramos primero los lugares que más coinciden";
+  document.getElementById("filtersSurpriseBtn").textContent = t("🎲 Sorpréndeme");
+  document.getElementById("filtersClearBtn").textContent = currentLang==="en" ? "Clear all" : "Limpiar todo";
+  document.getElementById("filtersApplyBtn").textContent = currentLang==="en" ? "See results" : "Ver resultados";
   renderCategoryOptions();
-  document.getElementById("categoryOverlay").classList.add("open");
+  renderDepartmentOptions();
+  document.getElementById("filtersOverlay").classList.add("open");
 }
 function renderCategoryOptions(){
   document.getElementById("categoryOptionsList").innerHTML = CATEGORIES.map(c=>{
@@ -1513,30 +1515,26 @@ function toggleCategory(key){
   else selectedCategories.push(key);
   renderCategoryOptions();
 }
-function clearCategoryFilter(){
-  selectedCategories = [];
-  renderCategoryOptions();
-  closeOverlay("categoryOverlay");
-  render();
-}
 
-/* ---- FILTRO DE DEPARTAMENTO (panel, ya no fila larga de chips) ---- */
-function openDepartmentFilter(){
-  document.getElementById("deptModalTitle").textContent = t("📍 Departamento");
-  renderDepartmentOptions();
-  document.getElementById("departmentOverlay").classList.add("open");
-}
+/* ---- FILTRO DE DEPARTAMENTO (misma pestaña combinada que categorías) ---- */
 function renderDepartmentOptions(){
-  const depts = getDepts();
+  const depts = getDepts().filter(d=>d!=="Todos");
   document.getElementById("departmentOptionsList").innerHTML = depts.map(d=>{
-    const on = d===selectedDept;
-    const label = d==="Todos" ? t("Todos") : d;
-    return `<div class="cat-option ${on?'selected':''}" onclick="selectDepartmentOption('${d}')"><span>${label}</span><span class="check">${on?'✓':''}</span></div>`;
+    const on = selectedDepts.includes(d);
+    return `<div class="cat-option ${on?'selected':''}" onclick="toggleDepartmentOption('${d}')"><span>${d}</span><span class="check">${on?'✓':''}</span></div>`;
   }).join("");
 }
-function selectDepartmentOption(d){
-  selectedDept = d;
-  closeOverlay("departmentOverlay");
+function toggleDepartmentOption(d){
+  if(selectedDepts.includes(d)) selectedDepts = selectedDepts.filter(x=>x!==d);
+  else selectedDepts.push(d);
+  renderDepartmentOptions();
+}
+function clearAllFilters(){
+  selectedCategories = [];
+  selectedDepts = [];
+  renderCategoryOptions();
+  renderDepartmentOptions();
+  closeOverlay("filtersOverlay");
   render();
 }
 
@@ -1646,7 +1644,8 @@ function render(){
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
 
-  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-surprise" onclick="surpriseMe()">${t("🎲 Sorpréndeme")}</div><div class="chip chip-cat ${selectedCategories.length?'active':''}" onclick="openCategoryFilter()">${t("🎯 Categorías")}${selectedCategories.length?' ('+selectedCategories.length+')':''}</div><div class="chip chip-dept ${selectedDept!=='Todos'?'active':''}" onclick="openDepartmentFilter()">📍 ${selectedDept==='Todos'?t('Departamento'):selectedDept}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`;
+  const totalFilters = selectedCategories.length + selectedDepts.length;
+  document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-cat ${totalFilters?'active':''}" onclick="openFiltersModal()">🎚️ ${t("Filtros Avanzados")}${totalFilters?' ('+totalFilters+')':''}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`;
   const totalRatings = places.reduce((sum,p)=>sum+getCount(p.id),0);
   const firstStatsRender = !statsAnimatedOnce && fsReady;
   const placesWord = currentLang==="en" ? (filtered.length!==1?"places found":"place found") : `lugar${filtered.length!==1?'es':''} encontrado${filtered.length!==1?'s':''}`;
