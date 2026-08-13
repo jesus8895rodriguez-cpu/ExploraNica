@@ -307,6 +307,8 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 /* GALLERY EDIT */
 .gallery-edit-list{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
 .gimg-thumb{position:relative;width:72px;height:72px;border-radius:10px;overflow:hidden;border:1.5px solid var(--border)}
+.gimg-broken{position:absolute;inset:0;background:#fdecea;color:var(--red);align-items:center;justify-content:center;text-align:center;font-size:10px;font-weight:700;padding:4px;line-height:1.2}
+.btn-load-more{width:100%;padding:14px;margin-top:8px;border-radius:12px;border:1.5px dashed var(--green);background:var(--green-bg);color:var(--green-dark);font-size:14px;font-weight:700;cursor:pointer}
 .gimg-thumb img{width:100%;height:100%;object-fit:cover}
 .gimg-del{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.65);color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
 .add-img-row{display:flex;gap:8px}
@@ -864,6 +866,7 @@ let places=[], ratings={}, comments={}, isAdmin=false;
 let businesses=[];
 let selectedDepts=[], searchQ="";
 let popularitySort="none";
+let visibleCount=20, lastFilterSignature="";
 let editingId=null, editImgs=[], editCategories=[];
 let viewingId=null, tempRating=0, galIdx=0;
 let deferredPrompt=null, installDismissed=false;
@@ -1917,6 +1920,10 @@ function installApp(){
 }
 function dismissInstall(){installDismissed=true;document.getElementById("installBanner").innerHTML="";}
 
+function cardImgError(imgEl, emoji){
+  const parent = imgEl.parentElement;
+  if(parent) parent.innerHTML = `<span>${emoji}</span>`;
+}
 function render(){
   const depts=getDepts();
   const filtered=applySort(getFilteredPlaces());
@@ -1958,13 +1965,22 @@ function render(){
     document.getElementById("grid").innerHTML=`<div class="empty" style="grid-column:1/-1"><div class="big">${emptyIcon}</div><p>${emptyMsg}</p></div>`;
     return;
   }
-  document.getElementById("grid").innerHTML=filtered.map((p,idx)=>{
+  const filterSignature = JSON.stringify([searchQ, selectedDepts, selectedCategories, showFavsOnly, popularitySort]);
+  if(filterSignature !== lastFilterSignature){
+    visibleCount = 20;
+    lastFilterSignature = filterSignature;
+  }
+  const toShow = filtered.slice(0, visibleCount);
+  const loadMoreHtml = filtered.length > visibleCount
+    ? `<button class="btn-load-more" style="grid-column:1/-1" onclick="loadMorePlaces()">${currentLang==="en"?"Load more":"Cargar más"} (+${Math.min(20, filtered.length-visibleCount)})</button>`
+    : "";
+  document.getElementById("grid").innerHTML=toShow.map((p,idx)=>{
     const avg=getAvg(p.id),cnt=getCount(p.id),filled=Math.round(avg);
     const isTop = avg>=4.5 && cnt>=1;
     const starsHtml=[1,2,3,4,5].map(i=>`<span class="star ${i<=filled?'on':''}">★</span>`).join("");
     const firstImg=p.imgs&&p.imgs.length?p.imgs[0]:null;
     const imgHtml=firstImg
-      ?`<img src="${firstImg}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'">${p.imgs.length>1?`<span style="position:absolute;bottom:5px;right:7px;background:rgba(0,0,0,0.5);color:#fff;font-size:11px;border-radius:10px;padding:2px 7px">📷 ${p.imgs.length}</span>`:""}`
+      ?`<img src="${firstImg}" alt="${p.name}" loading="lazy" onerror="cardImgError(this,'${p.emoji}')">${p.imgs.length>1?`<span style="position:absolute;bottom:5px;right:7px;background:rgba(0,0,0,0.5);color:#fff;font-size:11px;border-radius:10px;padding:2px 7px">📷 ${p.imgs.length}</span>`:""}`
       :`<span>${p.emoji}</span>`;
     const pn=getPosNeg(p.id);
     const pnHtml=(pn.pos||pn.neg)?`<div class="pn-summary"><span>👍 ${pn.pos}</span><span>👎 ${pn.neg}</span></div>`:'';
@@ -1980,7 +1996,11 @@ function render(){
       </div>
       ${isAdmin?`<div class="card-admin-btns" onclick="event.stopPropagation()"><button class="btn-edit" onclick="openEdit(${p.id})">✏️ Editar</button><button class="btn-del" onclick="deletePlace(${p.id})">🗑️ Eliminar</button></div>`:''}
     </div>`;
-  }).join("");
+  }).join("")+loadMoreHtml;
+}
+function loadMorePlaces(){
+  visibleCount += 20;
+  render();
 }
 
 /* ---- VIEW / GALLERY ---- */
@@ -2237,7 +2257,7 @@ function restoreDefaults(){
 /* ---- EDIT ---- */
 function renderEditGallery(){
   const el=document.getElementById("editGalleryList");
-  el.innerHTML=editImgs.map((img,i)=>`<div class="gimg-thumb"><img src="${img}" onerror="this.style.display='none'"/><button class="gimg-del" onclick="removeEditImg(${i})">✕</button></div>`).join("");
+  el.innerHTML=editImgs.map((img,i)=>`<div class="gimg-thumb"><img src="${img}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/><div class="gimg-broken" style="display:none" title="Esta foto no cargó, probá quitarla y agregar otra">⚠️ No cargó</div><button class="gimg-del" onclick="removeEditImg(${i})">✕</button></div>`).join("");
 }
 
 function removeEditImg(i){editImgs.splice(i,1);renderEditGallery();}
@@ -2270,9 +2290,18 @@ function compressImage(file, callback){
 function addUrlImg(){
   const url=document.getElementById("e-url-input").value.trim();
   if(!url)return;
-  editImgs.push(url);
-  document.getElementById("e-url-input").value="";
-  renderEditGallery();
+  showToast("Verificando la imagen...");
+  const testImg = new Image();
+  testImg.onload = ()=>{
+    editImgs.push(url);
+    document.getElementById("e-url-input").value="";
+    renderEditGallery();
+    showToast("Foto agregada ✅");
+  };
+  testImg.onerror = ()=>{
+    showToast("⚠️ Ese enlace no carga como imagen. Probá copiando la URL directa de la foto (termina en .jpg, .png, etc.)");
+  };
+  testImg.src = url;
 }
 
 function useMyLocation(){
