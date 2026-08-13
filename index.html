@@ -481,6 +481,9 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <h3 id="filtersDeptTitle" style="font-size:14px;margin:20px 0 10px">📍 Departamento</h3>
       <div id="departmentOptionsList"></div>
 
+      <h3 id="filtersPopTitle" style="font-size:14px;margin:20px 0 10px">🔥 Popularidad</h3>
+      <div id="popularityOptionsList"></div>
+
       <div class="edit-actions">
         <button class="btn-cancel" onclick="clearAllFilters()" id="filtersClearBtn">Limpiar todo</button>
         <button class="btn-save" onclick="closeOverlay('filtersOverlay');render()" id="filtersApplyBtn">Ver resultados</button>
@@ -718,6 +721,7 @@ const UI_STRINGS_EN = {
   "❤️ Favoritos":"❤️ Favorites",
   "🎯 Categorías":"🎯 Categories",
   "Filtros Avanzados":"Advanced Filters",
+  "🔥 Popularidad":"🔥 Popularity",
   "📍 Departamento":"📍 Department",
   "Departamento":"Department",
   "Todos":"All",
@@ -781,6 +785,7 @@ function loadLanguage(){
 
 let places=[], ratings={}, comments={}, isAdmin=false;
 let selectedDepts=[], searchQ="";
+let popularitySort="none";
 let editingId=null, editImgs=[], editCategories=[];
 let viewingId=null, tempRating=0, galIdx=0;
 let deferredPrompt=null, installDismissed=false;
@@ -1144,6 +1149,8 @@ function getFilteredPlaces(){
 
 /* ---- ORDENAR RESULTADOS ---- */
 function applySort(list){
+  if(popularitySort==="views") list=list.sort((a,b)=>(b.views||0)-(a.views||0));
+  else if(popularitySort==="rating") list=list.sort((a,b)=>getAvg(b.id)-getAvg(a.id)||getCount(b.id)-getCount(a.id));
   if(selectedCategories.length>0) list=list.sort((a,b)=>categoryMatchCount(b)-categoryMatchCount(a));
   return list;
 }
@@ -1488,6 +1495,7 @@ function openFiltersModal(){
   document.getElementById("filtersModalTitle").textContent = t("🎚️ Filtros Avanzados");
   document.getElementById("filtersCatTitle").textContent = t("🎯 Categorías");
   document.getElementById("filtersDeptTitle").textContent = t("📍 Departamento");
+  document.getElementById("filtersPopTitle").textContent = t("🔥 Popularidad");
   document.getElementById("catModalSubtitle").textContent = currentLang==="en"
     ? "Pick one or more — we'll show the best matches first"
     : "Elegí una o varias — te mostramos primero los lugares que más coinciden";
@@ -1496,6 +1504,7 @@ function openFiltersModal(){
   document.getElementById("filtersApplyBtn").textContent = currentLang==="en" ? "See results" : "Ver resultados";
   renderCategoryOptions();
   renderDepartmentOptions();
+  renderPopularityOptions();
   document.getElementById("filtersOverlay").classList.add("open");
 }
 function renderCategoryOptions(){
@@ -1524,11 +1533,31 @@ function toggleDepartmentOption(d){
   else selectedDepts.push(d);
   renderDepartmentOptions();
 }
+
+/* ---- ORDEN POR POPULARIDAD (selección única, dentro del mismo panel de filtros) ---- */
+function renderPopularityOptions(){
+  const opts = [
+    {key:"none", es:"Sin ordenar", en:"No sorting"},
+    {key:"views", es:"🔥 Más visitados", en:"🔥 Most visited"},
+    {key:"rating", es:"⭐ Mejor valorados", en:"⭐ Top rated"}
+  ];
+  document.getElementById("popularityOptionsList").innerHTML = opts.map(o=>{
+    const on = popularitySort===o.key;
+    const label = currentLang==="en" ? o.en : o.es;
+    return `<div class="cat-option ${on?'selected':''}" onclick="setPopularitySort('${o.key}')"><span>${label}</span><span class="check">${on?'✓':''}</span></div>`;
+  }).join("");
+}
+function setPopularitySort(val){
+  popularitySort = val;
+  renderPopularityOptions();
+}
 function clearAllFilters(){
   selectedCategories = [];
   selectedDepts = [];
+  popularitySort = "none";
   renderCategoryOptions();
   renderDepartmentOptions();
+  renderPopularityOptions();
   closeOverlay("filtersOverlay");
   render();
 }
@@ -1639,7 +1668,7 @@ function render(){
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
 
-  const totalFilters = selectedCategories.length + selectedDepts.length;
+  const totalFilters = selectedCategories.length + selectedDepts.length + (popularitySort!=="none"?1:0);
   document.getElementById("filters").innerHTML=`<div class="chip chip-lang" onclick="toggleLanguage()">${currentLang==="es"?"🇺🇸 English":"🇳🇮 Español"}</div><div class="chip chip-cat ${totalFilters?'active':''}" onclick="openFiltersModal()">🎚️ ${t("Filtros Avanzados")}${totalFilters?' ('+totalFilters+')':''}</div><div class="chip chip-events" onclick="openEvents()">${t("📅 Eventos")}</div><div class="chip chip-map" onclick="openMap()">${t("🌍 Mapa")}</div><div class="chip ${showFavsOnly?'active':''}" onclick="toggleFavsOnly()">${t("❤️ Favoritos")}${favorites.length?' ('+favorites.length+')':''}</div>`;
   const totalRatings = places.reduce((sum,p)=>sum+getCount(p.id),0);
   const firstStatsRender = !statsAnimatedOnce && fsReady;
@@ -1680,6 +1709,7 @@ function render(){
         <div class="card-name">${highlightMatch(tPlaceName(p), searchQ)}</div>
         <div class="stars-row"><div class="stars">${starsHtml}</div><span class="rcount">${cnt>0?avg.toFixed(1)+' ('+cnt+')':t("Sin valorar")}</span></div>
         ${selectedCategories.length>0?`<div class="cat-match-tag">🎯 ${categoryMatchCount(p)}/${selectedCategories.length} ${currentLang==="en"?"match":"coincide"}</div>`:''}
+        ${popularitySort==="views"?`<div class="cat-match-tag">👁️ ${p.views||0} ${currentLang==="en"?"views":"visitas"}</div>`:''}
         ${pnHtml}
       </div>
       ${isAdmin?`<div class="card-admin-btns" onclick="event.stopPropagation()"><button class="btn-edit" onclick="openEdit(${p.id})">✏️ Editar</button><button class="btn-del" onclick="deletePlace(${p.id})">🗑️ Eliminar</button></div>`:''}
