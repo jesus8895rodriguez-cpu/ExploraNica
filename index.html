@@ -102,6 +102,14 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .cat-option .check{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
 .cat-option.selected .check{background:#8E5CD9;border-color:#8E5CD9;color:#fff}
 .cat-match-tag{display:inline-flex;align-items:center;gap:4px;background:#8E5CD920;color:#8E5CD9;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;margin-top:4px}
+.biz-card{background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px}
+.biz-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}
+.biz-card-head b{font-size:14px;color:var(--text)}
+.biz-type-tag{font-size:10.5px;font-weight:700;color:var(--green-dark);background:var(--green-bg);padding:3px 8px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.biz-desc{font-size:12.5px;color:var(--text2);line-height:1.4;margin-bottom:8px}
+.biz-actions{display:flex;gap:8px;flex-wrap:wrap}
+.biz-btn{font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);text-decoration:none;cursor:pointer}
+.biz-btn-wa{background:#25D366;border-color:#25D366;color:#fff}
 .chip.chip-lang{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
 .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
 
@@ -373,6 +381,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div id="vm-infobox" class="infobox"></div>
       <div id="vm-categories" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
       <div id="vm-rules"></div>
+      <div id="vm-businesses"></div>
 
       <p class="rate-label" id="rate-question">¿Cómo valorás este lugar?</p>
       <div class="big-stars" id="vm-stars"></div>
@@ -416,9 +425,62 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div style="text-align:center;font-size:40px;margin-bottom:8px">⚙️</div>
       <h2 style="text-align:center;margin-bottom:20px">Panel de Administrador</h2>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openStatsPanel()">📊 Ver estadísticas</button>
+      <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openBusinessAdmin()">🏪 Negocios cercanos</button>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');restoreDefaults()">↺ Restaurar lugares por defecto</button>
       <button class="menu-item-btn menu-item-danger" onclick="closeOverlay('adminMenuOverlay');logout()">🚪 Cerrar sesión</button>
       <button class="btn-cancel" style="width:100%" onclick="closeOverlay('adminMenuOverlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- BUSINESS SUBMIT MODAL (público) -->
+<div class="overlay edit-overlay" id="businessSubmitOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <h2 id="bizSubmitTitle">🏪 Agregar tu negocio</h2>
+      <p id="bizSubmitSubtitle" style="font-size:13px;color:var(--text3);margin-bottom:16px">Lo revisamos antes de publicarlo</p>
+      <div class="field"><label id="bizNameLabel">Nombre del negocio</label><input id="biz-name" type="text" placeholder="Ej: Comedor Doña María"/></div>
+      <div class="field"><label id="bizTypeLabel">Tipo</label><select id="biz-type"></select></div>
+      <div class="field"><label id="bizDescLabel">Descripción breve</label><textarea id="biz-desc" placeholder="Ej: Comida típica nicaragüense, a 5 min del centro"></textarea></div>
+      <div class="field"><label id="bizPhoneLabel">Teléfono / WhatsApp</label><input id="biz-phone" type="tel" placeholder="Ej: 8888 9999"/></div>
+      <div class="field"><label id="bizOwnerLabel">Tu nombre (para contactarte si hace falta)</label><input id="biz-owner" type="text" placeholder="Ej: María López"/></div>
+      <div id="bizSubmitErr" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closeOverlay('businessSubmitOverlay')" id="bizCancelBtn">Cancelar</button>
+        <button class="btn-save" onclick="submitBusiness()" id="bizSubmitBtn">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BUSINESS ADMIN MODAL -->
+<div class="overlay edit-overlay" id="businessAdminOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2 style="margin:0">🏪 Negocios Cercanos</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('businessAdminOverlay')">Cerrar</button>
+      </div>
+      <button class="btn-save" style="width:100%;margin:10px 0 16px" onclick="openBusinessAdminAdd()">+ Agregar negocio directamente</button>
+      <div id="businessAdminList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BUSINESS ADMIN ADD/EDIT MODAL -->
+<div class="overlay edit-overlay" id="businessAdminEditOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <h2 id="bizAdminFormTitle">Agregar negocio</h2>
+      <div class="field"><label>Nombre del negocio</label><input id="biza-name" type="text" placeholder="Ej: Comedor Doña María"/></div>
+      <div class="field"><label>Tipo</label><select id="biza-type"></select></div>
+      <div class="field"><label>Descripción breve</label><textarea id="biza-desc"></textarea></div>
+      <div class="field"><label>Teléfono / WhatsApp</label><input id="biza-phone" type="tel" placeholder="Ej: 8888 9999"/></div>
+      <div class="field"><label>Lugar turístico cercano</label><select id="biza-nearplace"></select></div>
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closeOverlay('businessAdminEditOverlay')">Cancelar</button>
+        <button class="btn-save" onclick="saveBusinessFromAdmin()">Guardar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -713,6 +775,21 @@ function categoryLabel(key){
   return currentLang==="en" ? c.en : c.es;
 }
 let selectedCategories = [];
+
+const BUSINESS_TYPES = [
+  {key:"restaurante", es:"🍽️ Restaurante", en:"🍽️ Restaurant"},
+  {key:"hospedaje", es:"🛏️ Hospedaje", en:"🛏️ Lodging"},
+  {key:"reserva_privada", es:"🌳 Reserva privada", en:"🌳 Private reserve"},
+  {key:"tour", es:"🧭 Tours y guías", en:"🧭 Tours & guides"},
+  {key:"artesania", es:"🎁 Artesanías", en:"🎁 Crafts"},
+  {key:"otro", es:"🏪 Otro", en:"🏪 Other"}
+];
+function businessTypeLabel(key){
+  const b = BUSINESS_TYPES.find(x=>x.key===key);
+  if(!b) return key;
+  return currentLang==="en" ? b.en : b.es;
+}
+
 const UI_STRINGS_EN = {
   "Buscar lugar o departamento...":"Search for a place or department...",
   "🎲 Sorpréndeme":"🎲 Surprise me",
@@ -784,6 +861,7 @@ function loadLanguage(){
 }
 
 let places=[], ratings={}, comments={}, isAdmin=false;
+let businesses=[];
 let selectedDepts=[], searchQ="";
 let popularitySort="none";
 let editingId=null, editImgs=[], editCategories=[];
@@ -828,6 +906,7 @@ const placesCollection = firebaseOk ? db.collection("exploranica_places") : null
 const ratingsDoc = firebaseOk ? db.collection("exploranica").doc("ratings") : null;
 const commentsDoc = firebaseOk ? db.collection("exploranica").doc("comments") : null;
 const eventsDoc = firebaseOk ? db.collection("exploranica").doc("events") : null;
+const businessesCollection = firebaseOk ? db.collection("exploranica_negocios") : null;
 
 /* ---- IDENTIFICACIÓN SIMPLE POR NOMBRE (sin contraseña) ---- */
 const NAME_KEY = "exploranica_visitor_name";
@@ -1058,6 +1137,17 @@ function loadData(){
       renderComments(viewingId);
     }
   }, err=>console.error(err));
+
+  // Listener en tiempo real para negocios cercanos (un documento por negocio)
+  businessesCollection.onSnapshot(snap=>{
+    businesses = snap.docs.map(d=>d.data());
+    if(document.getElementById("viewOverlay").classList.contains("open") && viewingId){
+      renderNearbyBusinesses(viewingId);
+    }
+    if(document.getElementById("businessAdminOverlay").classList.contains("open")){
+      renderBusinessAdminList();
+    }
+  }, err=>console.error("Error cargando negocios:", err));
 }
 
 function savePlaceDoc(place, silent){
@@ -1073,6 +1163,182 @@ function deletePlaceDoc(id){
   if(!placesCollection) return;
   placesCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
 }
+function saveBusinessDoc(biz, silent){
+  if(!businessesCollection){ if(!silent) showToast("⚠️ Guardado localmente (sin conexión)"); return; }
+  businessesCollection.doc(String(biz.id)).set(biz).catch(()=>{ if(!silent) showToast("Error al guardar"); });
+}
+function deleteBusinessDoc(id){
+  if(!businessesCollection) return;
+  businessesCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
+}
+
+/* ---- NEGOCIOS CERCANOS: visualización pública dentro de la ficha del lugar ---- */
+function formatWhatsAppNumber(phone){
+  let digits = (phone||"").replace(/[^0-9]/g,"");
+  if(digits.length===8) digits = "505"+digits;
+  return digits;
+}
+function renderNearbyBusinesses(placeId){
+  const box = document.getElementById("vm-businesses");
+  if(!box) return;
+  const en = currentLang==="en";
+  const nearby = businesses.filter(b=>b.nearPlaceId===placeId && b.approved);
+  const title = en ? "🏪 Nearby Businesses" : "🏪 Negocios Cercanos";
+  const addLinkText = en ? "Do you have a business nearby? Add it here" : "¿Tenés un negocio cerca? Agregalo aquí";
+  let html = `<div class="rules-box" style="background:var(--surface);border:1px solid var(--border)"><h4 style="color:var(--text)">${title}</h4>`;
+  if(nearby.length===0){
+    html += `<p style="font-size:13px;color:var(--text3);margin:6px 0 4px">${en?"No businesses listed here yet.":"Todavía no hay negocios listados acá."}</p>`;
+  } else {
+    html += nearby.map(b=>{
+      const wa = formatWhatsAppNumber(b.phone);
+      return `<div class="biz-card">
+        <div class="biz-card-head"><b>${b.name}</b><span class="biz-type-tag">${businessTypeLabel(b.type)}</span></div>
+        ${b.desc?`<p class="biz-desc">${b.desc}</p>`:''}
+        <div class="biz-actions">
+          <a href="tel:${b.phone}" class="biz-btn">📞 ${en?"Call":"Llamar"}</a>
+          <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="biz-btn biz-btn-wa">💬 WhatsApp</a>
+        </div>
+      </div>`;
+    }).join("");
+  }
+  html += `<p style="text-align:center;margin-top:10px"><a href="#" onclick="openBusinessSubmit(${placeId});return false" style="font-size:12px;color:var(--green-dark);font-weight:700;text-decoration:underline">${addLinkText}</a></p>`;
+  html += `</div>`;
+  box.innerHTML = html;
+}
+
+/* ---- ENVÍO PÚBLICO DE NEGOCIO ---- */
+let submittingNearPlaceId = null;
+function openBusinessSubmit(placeId){
+  submittingNearPlaceId = placeId;
+  document.getElementById("biz-name").value = "";
+  document.getElementById("biz-desc").value = "";
+  document.getElementById("biz-phone").value = "";
+  document.getElementById("biz-owner").value = "";
+  document.getElementById("biz-type").innerHTML = BUSINESS_TYPES.map(b=>`<option value="${b.key}">${currentLang==="en"?b.en:b.es}</option>`).join("");
+  document.getElementById("bizSubmitErr").style.display="none";
+  applyBusinessSubmitTranslations();
+  document.getElementById("businessSubmitOverlay").classList.add("open");
+}
+function applyBusinessSubmitTranslations(){
+  const en = currentLang==="en";
+  document.getElementById("bizSubmitTitle").textContent = en?"🏪 Add your business":"🏪 Agregar tu negocio";
+  document.getElementById("bizSubmitSubtitle").textContent = en?"We'll review it before publishing":"Lo revisamos antes de publicarlo";
+  document.getElementById("bizNameLabel").textContent = en?"Business name":"Nombre del negocio";
+  document.getElementById("bizTypeLabel").textContent = en?"Type":"Tipo";
+  document.getElementById("bizDescLabel").textContent = en?"Short description":"Descripción breve";
+  document.getElementById("bizPhoneLabel").textContent = en?"Phone / WhatsApp":"Teléfono / WhatsApp";
+  document.getElementById("bizOwnerLabel").textContent = en?"Your name (in case we need to reach you)":"Tu nombre (para contactarte si hace falta)";
+  document.getElementById("bizCancelBtn").textContent = en?"Cancel":"Cancelar";
+  document.getElementById("bizSubmitBtn").textContent = en?"Submit":"Enviar";
+}
+function submitBusiness(){
+  const en = currentLang==="en";
+  const errEl = document.getElementById("bizSubmitErr");
+  const name = document.getElementById("biz-name").value.trim();
+  const type = document.getElementById("biz-type").value;
+  const desc = document.getElementById("biz-desc").value.trim();
+  const phone = document.getElementById("biz-phone").value.trim();
+  const owner = document.getElementById("biz-owner").value.trim();
+  if(!name || name.length<2){ errEl.textContent = en?"Enter the business name":"Escribí el nombre del negocio"; errEl.style.display="block"; return; }
+  if(!phone || phone.replace(/[^0-9]/g,"").length<8){ errEl.textContent = en?"Enter a valid phone number":"Escribí un teléfono válido"; errEl.style.display="block"; return; }
+  errEl.style.display="none";
+  const biz = {
+    id: Date.now(), name, type, desc, phone, ownerName: owner,
+    nearPlaceId: submittingNearPlaceId, approved: false, createdAt: new Date().toISOString()
+  };
+  businesses.push(biz);
+  saveBusinessDoc(biz);
+  closeOverlay("businessSubmitOverlay");
+  showToast(en?"Sent! We'll review it soon ✅":"¡Enviado! Lo vamos a revisar pronto ✅");
+}
+
+/* ---- ADMINISTRACIÓN DE NEGOCIOS ---- */
+function openBusinessAdmin(){
+  renderBusinessAdminList();
+  document.getElementById("businessAdminOverlay").classList.add("open");
+}
+function renderBusinessAdminList(){
+  const box = document.getElementById("businessAdminList");
+  if(!box) return;
+  const pending = businesses.filter(b=>!b.approved);
+  const approved = businesses.filter(b=>b.approved);
+  function placeNameOf(id){ const p = places.find(x=>x.id===id); return p ? p.name : "?"; }
+  function card(b, isPending){
+    return `<div class="biz-card" style="${isPending?'border-color:var(--amber)':''}">
+      <div class="biz-card-head"><b>${b.name}</b><span class="biz-type-tag">${businessTypeLabel(b.type)}</span></div>
+      <p class="biz-desc">📍 ${placeNameOf(b.nearPlaceId)} · 📞 ${b.phone}${b.ownerName?' · '+b.ownerName:''}</p>
+      ${b.desc?`<p class="biz-desc">${b.desc}</p>`:''}
+      <div class="biz-actions">
+        ${isPending?`<button class="biz-btn biz-btn-wa" onclick="approveBusiness(${b.id})">✓ Aprobar</button>`:`<button class="biz-btn" onclick="openBusinessAdminEdit(${b.id})">✏️ Editar</button>`}
+        <button class="biz-btn" style="color:var(--red)" onclick="deleteBusinessAdmin(${b.id})">🗑️ Eliminar</button>
+      </div>
+    </div>`;
+  }
+  let html = "";
+  html += `<h3 style="font-size:14px;margin-bottom:10px">⏳ Pendientes de aprobar (${pending.length})</h3>`;
+  html += pending.length ? pending.map(b=>card(b,true)).join("") : `<p style="font-size:13px;color:var(--text3);margin-bottom:16px">No hay negocios pendientes</p>`;
+  html += `<h3 style="font-size:14px;margin:18px 0 10px">✅ Publicados (${approved.length})</h3>`;
+  html += approved.length ? approved.map(b=>card(b,false)).join("") : `<p style="font-size:13px;color:var(--text3)">Todavía no hay negocios publicados</p>`;
+  box.innerHTML = html;
+}
+function approveBusiness(id){
+  const b = businesses.find(x=>x.id===id);
+  if(!b) return;
+  b.approved = true;
+  saveBusinessDoc(b);
+  showToast("Negocio aprobado ✅");
+}
+function deleteBusinessAdmin(id){
+  if(!confirm("¿Eliminar este negocio?")) return;
+  businesses = businesses.filter(x=>x.id!==id);
+  deleteBusinessDoc(id);
+  renderBusinessAdminList();
+  showToast("Negocio eliminado");
+}
+let editingBusinessId = null;
+function openBusinessAdminAdd(){
+  editingBusinessId = null;
+  document.getElementById("bizAdminFormTitle").textContent = "Agregar negocio";
+  document.getElementById("biza-name").value = "";
+  document.getElementById("biza-desc").value = "";
+  document.getElementById("biza-phone").value = "";
+  document.getElementById("biza-type").innerHTML = BUSINESS_TYPES.map(b=>`<option value="${b.key}">${b.es}</option>`).join("");
+  document.getElementById("biza-nearplace").innerHTML = places.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
+  document.getElementById("businessAdminEditOverlay").classList.add("open");
+}
+function openBusinessAdminEdit(id){
+  const b = businesses.find(x=>x.id===id);
+  if(!b) return;
+  editingBusinessId = id;
+  document.getElementById("bizAdminFormTitle").textContent = "Editar negocio";
+  document.getElementById("biza-name").value = b.name;
+  document.getElementById("biza-desc").value = b.desc||"";
+  document.getElementById("biza-phone").value = b.phone;
+  document.getElementById("biza-type").innerHTML = BUSINESS_TYPES.map(t=>`<option value="${t.key}" ${t.key===b.type?'selected':''}>${t.es}</option>`).join("");
+  document.getElementById("biza-nearplace").innerHTML = places.map(p=>`<option value="${p.id}" ${p.id===b.nearPlaceId?'selected':''}>${p.name}</option>`).join("");
+  document.getElementById("businessAdminEditOverlay").classList.add("open");
+}
+function saveBusinessFromAdmin(){
+  const name = document.getElementById("biza-name").value.trim();
+  const type = document.getElementById("biza-type").value;
+  const desc = document.getElementById("biza-desc").value.trim();
+  const phone = document.getElementById("biza-phone").value.trim();
+  const nearPlaceId = parseInt(document.getElementById("biza-nearplace").value);
+  if(!name || !phone){ showToast("Completá al menos el nombre y el teléfono"); return; }
+  let biz;
+  if(editingBusinessId){
+    biz = businesses.find(x=>x.id===editingBusinessId);
+    Object.assign(biz, {name, type, desc, phone, nearPlaceId});
+  } else {
+    biz = {id:Date.now(), name, type, desc, phone, ownerName:"", nearPlaceId, approved:true, createdAt:new Date().toISOString()};
+    businesses.push(biz);
+  }
+  saveBusinessDoc(biz);
+  closeOverlay("businessAdminEditOverlay");
+  renderBusinessAdminList();
+  showToast("Negocio guardado ✅");
+}
+
 function trackPlaceView(p){
   p.views = (p.views||0)+1;
   savePlaceDoc(p, true);
@@ -1721,7 +1987,7 @@ function render(){
 function applyModalTranslations(){
   if(viewingId){
     const p = places.find(x=>x.id===viewingId);
-    if(p){ renderRules(p); renderPlaceCategoryTags(p); }
+    if(p){ renderRules(p); renderPlaceCategoryTags(p); renderNearbyBusinesses(p.id); }
   }
   const shareBtn = document.getElementById("share-btn");
   if(shareBtn) shareBtn.textContent = t("📤 Compartir este lugar");
@@ -1755,6 +2021,7 @@ function openView(id){
   renderInfobox(p);
   renderRules(p);
   renderPlaceCategoryTags(p);
+  renderNearbyBusinesses(p.id);
   updateItinBtn();
   applyModalTranslations();
   loadWeather(p);
