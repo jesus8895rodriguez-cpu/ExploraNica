@@ -445,6 +445,14 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div class="field"><label id="bizTypeLabel">Tipo</label><select id="biz-type"></select></div>
       <div class="field"><label id="bizDescLabel">Descripción breve</label><textarea id="biz-desc" placeholder="Ej: Comida típica nicaragüense, a 5 min del centro"></textarea></div>
       <div class="field"><label id="bizPhoneLabel">Teléfono / WhatsApp</label><input id="biz-phone" type="tel" placeholder="Ej: 8888 9999"/></div>
+      <div class="field">
+        <label id="bizLocationLabel">Ubicación exacta (para que te encuentren en el mapa)</label>
+        <div style="display:flex;gap:8px">
+          <input id="biz-lat" type="number" step="any" placeholder="Latitud" style="flex:1"/>
+          <input id="biz-lng" type="number" step="any" placeholder="Longitud" style="flex:1"/>
+        </div>
+        <button type="button" class="btn-geoloc" onclick="useMyLocationForBusiness()" id="bizGeoBtn">📍 Usar mi ubicación actual</button>
+      </div>
       <div class="field"><label id="bizOwnerLabel">Tu nombre (para contactarte si hace falta)</label><input id="biz-owner" type="text" placeholder="Ej: María López"/></div>
       <div id="bizSubmitErr" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
       <div class="edit-actions">
@@ -478,6 +486,14 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div class="field"><label>Tipo</label><select id="biza-type"></select></div>
       <div class="field"><label>Descripción breve</label><textarea id="biza-desc"></textarea></div>
       <div class="field"><label>Teléfono / WhatsApp</label><input id="biza-phone" type="tel" placeholder="Ej: 8888 9999"/></div>
+      <div class="field">
+        <label>Coordenadas (para que aparezca en el mapa)</label>
+        <div style="display:flex;gap:8px">
+          <input id="biza-lat" type="number" step="any" placeholder="Latitud" style="flex:1"/>
+          <input id="biza-lng" type="number" step="any" placeholder="Longitud" style="flex:1"/>
+        </div>
+        <button type="button" class="btn-geoloc" onclick="useMyLocationForBusinessAdmin()">📍 Usar mi ubicación actual</button>
+      </div>
       <div class="field"><label>Lugar turístico cercano</label><select id="biza-nearplace"></select></div>
       <div class="edit-actions">
         <button class="btn-cancel" onclick="closeOverlay('businessAdminEditOverlay')">Cancelar</button>
@@ -1194,12 +1210,14 @@ function renderNearbyBusinesses(placeId){
   } else {
     html += nearby.map(b=>{
       const wa = formatWhatsAppNumber(b.phone);
+      const hasCoords = typeof b.lat==="number" && typeof b.lng==="number";
       return `<div class="biz-card">
         <div class="biz-card-head"><b>${b.name}</b><span class="biz-type-tag">${businessTypeLabel(b.type)}</span></div>
         ${b.desc?`<p class="biz-desc">${b.desc}</p>`:''}
         <div class="biz-actions">
           <a href="tel:${b.phone}" class="biz-btn">📞 ${en?"Call":"Llamar"}</a>
           <a href="https://wa.me/${wa}" target="_blank" rel="noopener" class="biz-btn biz-btn-wa">💬 WhatsApp</a>
+          ${hasCoords?`<button class="biz-btn" onclick="openBusinessDirections(${b.lat},${b.lng})">🧭 ${en?"Directions":"Cómo llegar"}</button>`:''}
         </div>
       </div>`;
     }).join("");
@@ -1217,6 +1235,8 @@ function openBusinessSubmit(placeId){
   document.getElementById("biz-desc").value = "";
   document.getElementById("biz-phone").value = "";
   document.getElementById("biz-owner").value = "";
+  document.getElementById("biz-lat").value = "";
+  document.getElementById("biz-lng").value = "";
   document.getElementById("biz-type").innerHTML = BUSINESS_TYPES.map(b=>`<option value="${b.key}">${currentLang==="en"?b.en:b.es}</option>`).join("");
   document.getElementById("bizSubmitErr").style.display="none";
   applyBusinessSubmitTranslations();
@@ -1230,6 +1250,8 @@ function applyBusinessSubmitTranslations(){
   document.getElementById("bizTypeLabel").textContent = en?"Type":"Tipo";
   document.getElementById("bizDescLabel").textContent = en?"Short description":"Descripción breve";
   document.getElementById("bizPhoneLabel").textContent = en?"Phone / WhatsApp":"Teléfono / WhatsApp";
+  document.getElementById("bizLocationLabel").textContent = en?"Exact location (so people can find you on the map)":"Ubicación exacta (para que te encuentren en el mapa)";
+  document.getElementById("bizGeoBtn").textContent = en?"📍 Use my current location":"📍 Usar mi ubicación actual";
   document.getElementById("bizOwnerLabel").textContent = en?"Your name (in case we need to reach you)":"Tu nombre (para contactarte si hace falta)";
   document.getElementById("bizCancelBtn").textContent = en?"Cancel":"Cancelar";
   document.getElementById("bizSubmitBtn").textContent = en?"Submit":"Enviar";
@@ -1242,17 +1264,37 @@ function submitBusiness(){
   const desc = document.getElementById("biz-desc").value.trim();
   const phone = document.getElementById("biz-phone").value.trim();
   const owner = document.getElementById("biz-owner").value.trim();
+  const latRaw = document.getElementById("biz-lat").value.trim();
+  const lngRaw = document.getElementById("biz-lng").value.trim();
+  const lat = latRaw?parseFloat(latRaw):null;
+  const lng = lngRaw?parseFloat(lngRaw):null;
   if(!name || name.length<2){ errEl.textContent = en?"Enter the business name":"Escribí el nombre del negocio"; errEl.style.display="block"; return; }
   if(!phone || phone.replace(/[^0-9]/g,"").length<8){ errEl.textContent = en?"Enter a valid phone number":"Escribí un teléfono válido"; errEl.style.display="block"; return; }
+  if((latRaw && !lngRaw) || (!latRaw && lngRaw)){ errEl.textContent = en?"Fill in both latitude AND longitude, or leave both empty":"Completá latitud Y longitud, o dejá ambas vacías"; errEl.style.display="block"; return; }
+  if(latRaw && (isNaN(lat) || lat<-90 || lat>90)){ errEl.textContent = en?"Invalid latitude":"Latitud inválida"; errEl.style.display="block"; return; }
+  if(lngRaw && (isNaN(lng) || lng<-180 || lng>180)){ errEl.textContent = en?"Invalid longitude":"Longitud inválida"; errEl.style.display="block"; return; }
   errEl.style.display="none";
   const biz = {
-    id: Date.now(), name, type, desc, phone, ownerName: owner,
+    id: Date.now(), name, type, desc, phone, ownerName: owner, lat, lng,
     nearPlaceId: submittingNearPlaceId, approved: false, createdAt: new Date().toISOString()
   };
   businesses.push(biz);
   saveBusinessDoc(biz);
   closeOverlay("businessSubmitOverlay");
   showToast(en?"Sent! We'll review it soon ✅":"¡Enviado! Lo vamos a revisar pronto ✅");
+}
+function useMyLocationForBusiness(){
+  if(!navigator.geolocation){ showToast("Tu navegador no soporta geolocalización"); return; }
+  showToast("Obteniendo tu ubicación...");
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      document.getElementById("biz-lat").value = pos.coords.latitude.toFixed(6);
+      document.getElementById("biz-lng").value = pos.coords.longitude.toFixed(6);
+      showToast("Ubicación obtenida ✅");
+    },
+    err=>{ showToast("No se pudo obtener tu ubicación"); },
+    {timeout:10000}
+  );
 }
 
 /* ---- ADMINISTRACIÓN DE NEGOCIOS ---- */
@@ -1305,6 +1347,8 @@ function openBusinessAdminAdd(){
   document.getElementById("biza-name").value = "";
   document.getElementById("biza-desc").value = "";
   document.getElementById("biza-phone").value = "";
+  document.getElementById("biza-lat").value = "";
+  document.getElementById("biza-lng").value = "";
   document.getElementById("biza-type").innerHTML = BUSINESS_TYPES.map(b=>`<option value="${b.key}">${b.es}</option>`).join("");
   document.getElementById("biza-nearplace").innerHTML = places.map(p=>`<option value="${p.id}">${p.name}</option>`).join("");
   document.getElementById("businessAdminEditOverlay").classList.add("open");
@@ -1317,9 +1361,24 @@ function openBusinessAdminEdit(id){
   document.getElementById("biza-name").value = b.name;
   document.getElementById("biza-desc").value = b.desc||"";
   document.getElementById("biza-phone").value = b.phone;
+  document.getElementById("biza-lat").value = (typeof b.lat==="number")?b.lat:"";
+  document.getElementById("biza-lng").value = (typeof b.lng==="number")?b.lng:"";
   document.getElementById("biza-type").innerHTML = BUSINESS_TYPES.map(t=>`<option value="${t.key}" ${t.key===b.type?'selected':''}>${t.es}</option>`).join("");
   document.getElementById("biza-nearplace").innerHTML = places.map(p=>`<option value="${p.id}" ${p.id===b.nearPlaceId?'selected':''}>${p.name}</option>`).join("");
   document.getElementById("businessAdminEditOverlay").classList.add("open");
+}
+function useMyLocationForBusinessAdmin(){
+  if(!navigator.geolocation){ showToast("Tu navegador no soporta geolocalización"); return; }
+  showToast("Obteniendo tu ubicación...");
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      document.getElementById("biza-lat").value = pos.coords.latitude.toFixed(6);
+      document.getElementById("biza-lng").value = pos.coords.longitude.toFixed(6);
+      showToast("Ubicación obtenida ✅");
+    },
+    err=>{ showToast("No se pudo obtener tu ubicación"); },
+    {timeout:10000}
+  );
 }
 function saveBusinessFromAdmin(){
   const name = document.getElementById("biza-name").value.trim();
@@ -1327,13 +1386,20 @@ function saveBusinessFromAdmin(){
   const desc = document.getElementById("biza-desc").value.trim();
   const phone = document.getElementById("biza-phone").value.trim();
   const nearPlaceId = parseInt(document.getElementById("biza-nearplace").value);
+  const latRaw = document.getElementById("biza-lat").value.trim();
+  const lngRaw = document.getElementById("biza-lng").value.trim();
+  const lat = latRaw?parseFloat(latRaw):null;
+  const lng = lngRaw?parseFloat(lngRaw):null;
   if(!name || !phone){ showToast("Completá al menos el nombre y el teléfono"); return; }
+  if((latRaw && !lngRaw) || (!latRaw && lngRaw)){ showToast("Completá latitud Y longitud, o dejá ambas vacías"); return; }
+  if(latRaw && (isNaN(lat) || lat<-90 || lat>90)){ showToast("Latitud inválida"); return; }
+  if(lngRaw && (isNaN(lng) || lng<-180 || lng>180)){ showToast("Longitud inválida"); return; }
   let biz;
   if(editingBusinessId){
     biz = businesses.find(x=>x.id===editingBusinessId);
-    Object.assign(biz, {name, type, desc, phone, nearPlaceId});
+    Object.assign(biz, {name, type, desc, phone, nearPlaceId, lat, lng});
   } else {
-    biz = {id:Date.now(), name, type, desc, phone, ownerName:"", nearPlaceId, approved:true, createdAt:new Date().toISOString()};
+    biz = {id:Date.now(), name, type, desc, phone, ownerName:"", lat, lng, nearPlaceId, approved:true, createdAt:new Date().toISOString()};
     businesses.push(biz);
   }
   saveBusinessDoc(biz);
@@ -1746,6 +1812,16 @@ function initMap(){
       marker.bindPopup(`<b>${ev.emoji} ${tEventName(ev)}</b><br>📅 ${dateStr}<br>📍 ${ev.dept}`);
       leafletMarkers.push(marker);
     });
+    const businessIcon = L.divIcon({
+      html:'<div style="background:#E8A33D;width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,0.3)"><span style="transform:rotate(45deg);font-size:13px">🏪</span></div>',
+      iconSize:[26,26], iconAnchor:[13,26], className:''
+    });
+    businesses.forEach(b=>{
+      if(!b.approved || typeof b.lat!=="number" || typeof b.lng!=="number") return;
+      const marker = L.marker([b.lat, b.lng], {icon:businessIcon}).addTo(leafletMapInstance);
+      marker.bindPopup(`<b>🏪 ${b.name}</b><br>${businessTypeLabel(b.type)}<br><a href="tel:${b.phone}" style="color:#C1502E">📞 ${b.phone}</a>`);
+      leafletMarkers.push(marker);
+    });
   }catch(e){
     console.error("Error inicializando el mapa:", e);
     document.getElementById("leafletMap").innerHTML = '<div class="empty" style="height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center"><div class="big">⚠️</div><p>Ocurrió un error al cargar el mapa.</p></div>';
@@ -1888,6 +1964,10 @@ function openDirections(){
   const p = places.find(x=>x.id===viewingId);
   if(!p || !p.address) return;
   const url = "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(p.address);
+  window.open(url, "_blank", "noopener");
+}
+function openBusinessDirections(lat, lng){
+  const url = "https://www.google.com/maps/search/?api=1&query="+lat+","+lng;
   window.open(url, "_blank", "noopener");
 }
 
