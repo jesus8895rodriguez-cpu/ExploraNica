@@ -220,6 +220,12 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .notif-item div{display:flex;flex-direction:column}
 .notif-item b{font-size:13.5px;color:var(--text)}
 .notif-item span:last-child{font-size:12px;color:var(--text3)}
+.ach-item{display:flex;align-items:center;gap:14px;padding:12px 10px;border-radius:12px;margin-bottom:8px;border:1.5px solid var(--border)}
+.ach-item.ach-unlocked{background:var(--green-bg);border-color:var(--green)}
+.ach-item.ach-locked{opacity:0.55}
+.ach-icon{font-size:26px;flex-shrink:0;width:36px;text-align:center}
+.ach-item b{display:block;font-size:14px;color:var(--text)}
+.ach-item span{font-size:12px;color:var(--text3)}
 .itin-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--surface)}
 .itin-order{display:flex;flex-direction:column;gap:2px}
 .itin-order button{width:24px;height:19px;border:1px solid var(--border);background:var(--bg);border-radius:5px;cursor:pointer;font-size:10px;color:var(--text2);padding:0}
@@ -797,11 +803,26 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
     <div class="sheet-body">
       <div style="text-align:center;font-size:44px;margin-bottom:8px">👤</div>
       <h2 style="text-align:center;margin-bottom:2px" id="umName"></h2>
-      <p style="text-align:center;font-size:13px;color:var(--text3);margin-bottom:20px" id="umEmail"></p>
+      <p style="text-align:center;font-size:13px;color:var(--text3);margin-bottom:14px" id="umEmail"></p>
+      <button class="menu-item-btn" onclick="closeOverlay('userMenuOverlay');openAchievements()" id="umAchSummary" style="text-align:center;font-weight:700">🏅 Logros</button>
       <div class="edit-actions">
         <button class="btn-cancel" onclick="closeOverlay('userMenuOverlay')">Cerrar</button>
         <button class="btn-save" style="background:var(--red)" onclick="doUserLogout()">Cerrar sesión</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACHIEVEMENTS MODAL -->
+<div class="overlay edit-overlay" id="achievementsOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2 id="achTitle" style="margin:0">🏅 Mis Logros</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('achievementsOverlay')">Cerrar</button>
+      </div>
+      <p id="achProgress" style="text-align:center;font-size:13px;color:var(--text3);margin-bottom:16px"></p>
+      <div id="achievementsList"></div>
     </div>
   </div>
 </div>
@@ -894,6 +915,72 @@ function businessTypeLabel(key){
   const b = BUSINESS_TYPES.find(x=>x.key===key);
   if(!b) return key;
   return currentLang==="en" ? b.en : b.es;
+}
+
+/* ---- GAMIFICACIÓN: LOGROS ---- */
+function getFavoriteDeptCount(){
+  const depts = new Set();
+  favorites.forEach(id=>{ const p = places.find(x=>x.id===id); if(p) depts.add(p.dept); });
+  return depts.size;
+}
+function hasFavoriteCategory(cat){
+  return favorites.some(id=>{ const p = places.find(x=>x.id===id); return p && tPlaceCategories(p).includes(cat); });
+}
+function getMyRatingsCount(){
+  let myRated = [];
+  try{ myRated = JSON.parse(localStorage.getItem("exploranica_my_ratings")||"[]"); }catch(e){}
+  return myRated.length;
+}
+function trackMyRating(placeId){
+  try{
+    let myRated = JSON.parse(localStorage.getItem("exploranica_my_ratings")||"[]");
+    if(!myRated.includes(placeId)){ myRated.push(placeId); localStorage.setItem("exploranica_my_ratings", JSON.stringify(myRated)); }
+  }catch(e){}
+}
+function getMyCommentsCount(){
+  let count = 0;
+  const myDevice = getDeviceId();
+  Object.values(comments).forEach(list=>{ count += (list||[]).filter(c=>c.authorDevice===myDevice).length; });
+  return count;
+}
+const ACHIEVEMENTS = [
+  {key:"primer_favorito", icon:"❤️", es:"Primer paso", en:"First step", desc_es:"Marcá tu primer lugar favorito", desc_en:"Favorite your first place", check:()=>favorites.length>=1},
+  {key:"explorador", icon:"🗺️", es:"Explorador", en:"Explorer", desc_es:"Marcá 5 lugares como favoritos", desc_en:"Favorite 5 places", check:()=>favorites.length>=5},
+  {key:"trotamundos", icon:"🌎", es:"Trotamundos", en:"Globetrotter", desc_es:"Favoritos en 5 departamentos distintos", desc_en:"Favorites across 5 different departments", check:()=>getFavoriteDeptCount()>=5},
+  {key:"aventurero", icon:"🪂", es:"Alma aventurera", en:"Adventurous soul", desc_es:"Marcá como favorito un lugar de aventura", desc_en:"Favorite an adventure place", check:()=>hasFavoriteCategory("aventura")},
+  {key:"playero", icon:"🏖️", es:"Amante del mar", en:"Sea lover", desc_es:"Marcá como favorita una playa", desc_en:"Favorite a beach", check:()=>hasFavoriteCategory("playa")},
+  {key:"critico", icon:"⭐", es:"Primera opinión", en:"First opinion", desc_es:"Valorá tu primer lugar", desc_en:"Rate your first place", check:()=>getMyRatingsCount()>=1},
+  {key:"voz_activa", icon:"💬", es:"Voz activa", en:"Active voice", desc_es:"Dejá 3 comentarios", desc_en:"Leave 3 comments", check:()=>getMyCommentsCount()>=3},
+  {key:"planificador", icon:"🗓️", es:"Planificador", en:"Planner", desc_es:"Agregá 3 lugares a tu itinerario", desc_en:"Add 3 places to your itinerary", check:()=>itinerary.length>=3}
+];
+function checkNewAchievements(){
+  let seen = [];
+  try{ seen = JSON.parse(localStorage.getItem("exploranica_achievements_seen")||"[]"); }catch(e){}
+  const unlockedNow = ACHIEVEMENTS.filter(a=>a.check()).map(a=>a.key);
+  const newOnes = unlockedNow.filter(k=>!seen.includes(k));
+  if(newOnes.length>0){
+    const achievement = ACHIEVEMENTS.find(a=>a.key===newOnes[0]);
+    const en = currentLang==="en";
+    showToast(`🏅 ${en?"New achievement":"Nuevo logro"}: ${en?achievement.en:achievement.es}!`);
+    try{ localStorage.setItem("exploranica_achievements_seen", JSON.stringify([...new Set([...seen, ...newOnes])])); }catch(e){}
+  }
+}
+function openAchievements(){
+  renderAchievements();
+  document.getElementById("achievementsOverlay").classList.add("open");
+}
+function renderAchievements(){
+  const en = currentLang==="en";
+  const unlockedKeys = ACHIEVEMENTS.filter(a=>a.check()).map(a=>a.key);
+  document.getElementById("achTitle").textContent = en?"🏅 My Achievements":"🏅 Mis Logros";
+  document.getElementById("achProgress").textContent = `${unlockedKeys.length} / ${ACHIEVEMENTS.length} ${en?"unlocked":"desbloqueados"}`;
+  document.getElementById("achievementsList").innerHTML = ACHIEVEMENTS.map(a=>{
+    const unlocked = unlockedKeys.includes(a.key);
+    return `<div class="ach-item ${unlocked?'ach-unlocked':'ach-locked'}">
+      <span class="ach-icon">${unlocked?a.icon:'🔒'}</span>
+      <div><b>${en?a.en:a.es}</b><span>${en?a.desc_en:a.desc_es}</span></div>
+    </div>`;
+  }).join("");
 }
 
 const UI_STRINGS_EN = {
@@ -1152,8 +1239,13 @@ function checkEmailLinkSignIn(){
 
 function openUserMenu(){
   if(!currentUser) return;
+  const en = currentLang==="en";
   document.getElementById("umName").textContent = currentUser.name;
-  document.getElementById("umEmail").textContent = "Identificado por nombre en este dispositivo";
+  document.getElementById("umEmail").textContent = currentUser.email
+    ? (en?"Signed in with ":"Identificado con ")+currentUser.email
+    : (en?"Signed in on this device":"Identificado en este dispositivo");
+  const unlockedCount = ACHIEVEMENTS.filter(a=>a.check()).length;
+  document.getElementById("umAchSummary").textContent = `🏅 ${unlockedCount}/${ACHIEVEMENTS.length} ${en?"achievements unlocked":"logros desbloqueados"}`;
   document.getElementById("userMenuOverlay").classList.add("open");
 }
 
@@ -1843,6 +1935,7 @@ function toggleFavorite(id){
   else favorites.push(id);
   saveFavorites();
   render();
+  checkNewAchievements();
 }
 function toggleFavsOnly(){
   showFavsOnly = !showFavsOnly;
@@ -1875,6 +1968,7 @@ function toggleItineraryItem(){
   saveItinerary();
   updateItinBtn();
   render();
+  checkNewAchievements();
 }
 function removeFromItinerary(id){
   itinerary = itinerary.filter(x=>x.placeId!==id);
@@ -2566,6 +2660,7 @@ function submitComment(){
   renderComments(viewingId);
   render();
   showToast("Comentario publicado ✅");
+  checkNewAchievements();
 }
 
 /* ---- MODERACIÓN AUTOMÁTICA DE COMENTARIOS ---- */
@@ -2669,9 +2764,11 @@ function submitRating(){
   if(tempRating===0){showToast("Seleccioná una valoración");return;}
   if(!ratings[viewingId])ratings[viewingId]=[];
   ratings[viewingId].push(tempRating);
+  trackMyRating(viewingId);
   saveRatings();closeOverlay("viewOverlay");render();
   showToast("¡Gracias por tu valoración! ⭐");
   launchConfetti();
+  checkNewAchievements();
 }
 
 function launchConfetti(){
