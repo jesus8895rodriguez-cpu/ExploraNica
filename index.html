@@ -116,6 +116,9 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .rec-card-img img{width:100%;height:100%;object-fit:cover}
 .rec-card-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .rec-card-dept{font-size:10.5px;color:var(--text3);margin-top:2px}
+.visitor-photo-thumb{flex:0 0 100px;cursor:pointer}
+.visitor-photo-thumb img{width:100px;height:100px;border-radius:10px;object-fit:cover}
+.visitor-photo-thumb span{display:block;font-size:10.5px;color:var(--text3);margin-top:4px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .chip.chip-lang{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
 .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
 
@@ -403,6 +406,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div id="vm-categories" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
       <div id="vm-rules"></div>
       <div id="vm-businesses"></div>
+      <div id="vm-visitor-photos"></div>
       <div id="vm-recommendations"></div>
 
       <p class="rate-label" id="rate-question">¿Cómo valorás este lugar?</p>
@@ -448,6 +452,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <h2 style="text-align:center;margin-bottom:20px">Panel de Administrador</h2>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openStatsPanel()">📊 Ver estadísticas</button>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openBusinessAdmin()">🏪 Negocios cercanos</button>
+      <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openPhotoAdmin()">📸 Fotos de visitantes</button>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');restoreDefaults()">↺ Restaurar lugares por defecto</button>
       <button class="menu-item-btn menu-item-danger" onclick="closeOverlay('adminMenuOverlay');logout()">🚪 Cerrar sesión</button>
       <button class="btn-cancel" style="width:100%" onclick="closeOverlay('adminMenuOverlay')">Cancelar</button>
@@ -519,6 +524,40 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         <button class="btn-cancel" onclick="closeOverlay('businessAdminEditOverlay')">Cancelar</button>
         <button class="btn-save" onclick="saveBusinessFromAdmin()">Guardar</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- VISITOR PHOTO SUBMIT MODAL (público) -->
+<div class="overlay edit-overlay" id="photoSubmitOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <h2 id="photoSubmitTitle">📸 Compartí tu foto</h2>
+      <p id="photoSubmitSubtitle" style="font-size:13px;color:var(--text3);margin-bottom:16px">La revisamos antes de publicarla</p>
+      <div id="photoPreviewBox" style="width:100%;height:160px;border-radius:12px;background:var(--bg);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:14px"></div>
+      <label class="upload-btn" style="display:block;text-align:center;margin-bottom:14px">
+        <span id="photoUploadLabel">📷 Elegir foto desde el celular</span>
+        <input type="file" id="visitor-photo-file" accept="image/*" style="display:none" onchange="handleVisitorPhotoSelect()"/>
+      </label>
+      <div class="field"><label id="photoOwnerLabel">Tu nombre (opcional)</label><input id="visitor-photo-name" type="text" placeholder="Ej: María López"/></div>
+      <div id="photoSubmitErr" style="color:var(--red);font-size:13px;margin-bottom:10px;display:none"></div>
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closeOverlay('photoSubmitOverlay')" id="photoCancelBtn">Cancelar</button>
+        <button class="btn-save" onclick="submitVisitorPhoto()" id="photoSubmitBtn">Enviar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTO ADMIN MODAL -->
+<div class="overlay edit-overlay" id="photoAdminOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 style="margin:0">📸 Fotos de Visitantes</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('photoAdminOverlay')">Cerrar</button>
+      </div>
+      <div id="photoAdminList"></div>
     </div>
   </div>
 </div>
@@ -929,6 +968,7 @@ function loadLanguage(){
 
 let places=[], ratings={}, comments={}, isAdmin=false;
 let businesses=[];
+let visitorPhotos=[];
 let selectedDepts=[], searchQ="";
 let popularitySort="none";
 let visibleCount=20, lastFilterSignature="";
@@ -981,6 +1021,7 @@ const ratingsDoc = firebaseOk ? db.collection("exploranica").doc("ratings") : nu
 const commentsDoc = firebaseOk ? db.collection("exploranica").doc("comments") : null;
 const eventsDoc = firebaseOk ? db.collection("exploranica").doc("events") : null;
 const businessesCollection = firebaseOk ? db.collection("exploranica_negocios") : null;
+const visitorPhotosCollection = firebaseOk ? db.collection("exploranica_fotos_visitantes") : null;
 
 /* ---- IDENTIFICACIÓN SIMPLE POR NOMBRE (sin contraseña) ---- */
 const NAME_KEY = "exploranica_visitor_name";
@@ -1222,6 +1263,17 @@ function loadData(){
       renderBusinessAdminList();
     }
   }, err=>console.error("Error cargando negocios:", err));
+
+  // Listener en tiempo real para fotos de visitantes (un documento por foto)
+  visitorPhotosCollection.onSnapshot(snap=>{
+    visitorPhotos = snap.docs.map(d=>d.data());
+    if(document.getElementById("viewOverlay").classList.contains("open") && viewingId){
+      renderVisitorPhotos(viewingId);
+    }
+    if(document.getElementById("photoAdminOverlay").classList.contains("open")){
+      renderPhotoAdminList();
+    }
+  }, err=>console.error("Error cargando fotos de visitantes:", err));
 }
 
 function savePlaceDoc(place, silent){
@@ -1244,6 +1296,130 @@ function saveBusinessDoc(biz, silent){
 function deleteBusinessDoc(id){
   if(!businessesCollection) return;
   businessesCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
+}
+function saveVisitorPhotoDoc(photo, silent){
+  const sizeKB = new Blob([JSON.stringify(photo)]).size / 1024;
+  if(sizeKB > 950){
+    if(!silent) showToast("⚠️ Esa foto es demasiado pesada, probá con otra");
+    return;
+  }
+  if(!visitorPhotosCollection){ if(!silent) showToast("⚠️ Guardado localmente (sin conexión)"); return; }
+  visitorPhotosCollection.doc(String(photo.id)).set(photo).catch(()=>{ if(!silent) showToast("Error al guardar"); });
+}
+function deleteVisitorPhotoDoc(id){
+  if(!visitorPhotosCollection) return;
+  visitorPhotosCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
+}
+
+/* ---- FOTOS DE VISITANTES: visualización pública dentro de la ficha del lugar ---- */
+function renderVisitorPhotos(placeId){
+  const box = document.getElementById("vm-visitor-photos");
+  if(!box) return;
+  const en = currentLang==="en";
+  const approved = visitorPhotos.filter(ph=>ph.placeId===placeId && ph.approved);
+  const title = en ? "📸 Community Photos" : "📸 Fotos de la Comunidad";
+  const addLinkText = en ? "Share your photo of this place" : "Compartí tu foto de este lugar";
+  let html = `<div class="rules-box" style="background:var(--surface);border:1px solid var(--border)"><h4 style="color:var(--text)">${title}</h4>`;
+  if(approved.length===0){
+    html += `<p style="font-size:13px;color:var(--text3);margin:6px 0 4px">${en?"No visitor photos yet, be the first!":"Todavía no hay fotos de visitantes, ¡sé el primero!"}</p>`;
+  } else {
+    html += `<div class="rec-scroll">${approved.map(ph=>`
+      <div class="visitor-photo-thumb" onclick="openVisitorPhotoFull('${ph.imageData.replace(/'/g,"\\'")}')">
+        <img src="${ph.imageData}" alt="${en?'Visitor photo':'Foto de visitante'}" loading="lazy"/>
+        ${ph.submittedByName?`<span>${ph.submittedByName}</span>`:''}
+      </div>`).join("")}</div>`;
+  }
+  html += `<p style="text-align:center;margin-top:10px"><a href="#" onclick="openPhotoSubmit(${placeId});return false" style="font-size:12px;color:var(--green-dark);font-weight:700;text-decoration:underline">${addLinkText}</a></p>`;
+  html += `</div>`;
+  box.innerHTML = html;
+}
+function openVisitorPhotoFull(imgSrc){
+  const w = window.open("", "_blank");
+  if(w) w.document.write(`<body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh"><img src="${imgSrc}" style="max-width:100%;max-height:100vh"/></body>`);
+}
+
+/* ---- ENVÍO PÚBLICO DE FOTO ---- */
+let submittingPhotoNearPlaceId = null;
+let pendingVisitorPhotoData = null;
+function openPhotoSubmit(placeId){
+  submittingPhotoNearPlaceId = placeId;
+  pendingVisitorPhotoData = null;
+  document.getElementById("visitor-photo-name").value = "";
+  document.getElementById("photoPreviewBox").innerHTML = "";
+  document.getElementById("photoSubmitErr").style.display = "none";
+  const en = currentLang==="en";
+  document.getElementById("photoSubmitTitle").textContent = en?"📸 Share your photo":"📸 Compartí tu foto";
+  document.getElementById("photoSubmitSubtitle").textContent = en?"We'll review it before publishing":"La revisamos antes de publicarla";
+  document.getElementById("photoUploadLabel").textContent = en?"📷 Choose photo from phone":"📷 Elegir foto desde el celular";
+  document.getElementById("photoOwnerLabel").textContent = en?"Your name (optional)":"Tu nombre (opcional)";
+  document.getElementById("photoCancelBtn").textContent = en?"Cancel":"Cancelar";
+  document.getElementById("photoSubmitBtn").textContent = en?"Submit":"Enviar";
+  document.getElementById("photoSubmitOverlay").classList.add("open");
+}
+function handleVisitorPhotoSelect(){
+  const file = document.getElementById("visitor-photo-file").files[0];
+  if(!file) return;
+  compressImage(file, dataUrl=>{
+    pendingVisitorPhotoData = dataUrl;
+    document.getElementById("photoPreviewBox").innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:cover"/>`;
+  });
+}
+function submitVisitorPhoto(){
+  const en = currentLang==="en";
+  const errEl = document.getElementById("photoSubmitErr");
+  if(!pendingVisitorPhotoData){ errEl.textContent = en?"Choose a photo first":"Elegí una foto primero"; errEl.style.display="block"; return; }
+  const name = document.getElementById("visitor-photo-name").value.trim();
+  const photo = {
+    id: Date.now(), placeId: submittingPhotoNearPlaceId, imageData: pendingVisitorPhotoData,
+    submittedByName: name, approved: false, createdAt: new Date().toISOString()
+  };
+  visitorPhotos.push(photo);
+  saveVisitorPhotoDoc(photo);
+  closeOverlay("photoSubmitOverlay");
+  showToast(en?"Sent! We'll review it soon ✅":"¡Enviada! La vamos a revisar pronto ✅");
+}
+
+/* ---- ADMINISTRACIÓN DE FOTOS DE VISITANTES ---- */
+function openPhotoAdmin(){
+  renderPhotoAdminList();
+  document.getElementById("photoAdminOverlay").classList.add("open");
+}
+function renderPhotoAdminList(){
+  const box = document.getElementById("photoAdminList");
+  if(!box) return;
+  const pending = visitorPhotos.filter(ph=>!ph.approved);
+  const approved = visitorPhotos.filter(ph=>ph.approved);
+  function placeNameOf(id){ const p = places.find(x=>x.id===id); return p ? p.name : "?"; }
+  function card(ph, isPending){
+    return `<div class="biz-card" style="${isPending?'border-color:var(--amber)':''}">
+      <img src="${ph.imageData}" style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>
+      <p class="biz-desc">📍 ${placeNameOf(ph.placeId)}${ph.submittedByName?' · '+ph.submittedByName:''}</p>
+      <div class="biz-actions">
+        ${isPending?`<button class="biz-btn biz-btn-wa" onclick="approvePhoto(${ph.id})">✓ Aprobar</button>`:''}
+        <button class="biz-btn" style="color:var(--red)" onclick="deletePhotoAdmin(${ph.id})">🗑️ Eliminar</button>
+      </div>
+    </div>`;
+  }
+  let html = "";
+  html += `<h3 style="font-size:14px;margin-bottom:10px">⏳ Pendientes de aprobar (${pending.length})</h3>`;
+  html += pending.length ? pending.map(ph=>card(ph,true)).join("") : `<p style="font-size:13px;color:var(--text3);margin-bottom:16px">No hay fotos pendientes</p>`;
+  html += `<h3 style="font-size:14px;margin:18px 0 10px">✅ Publicadas (${approved.length})</h3>`;
+  html += approved.length ? approved.map(ph=>card(ph,false)).join("") : `<p style="font-size:13px;color:var(--text3)">Todavía no hay fotos publicadas</p>`;
+  box.innerHTML = html;
+}
+function approvePhoto(id){
+  const ph = visitorPhotos.find(x=>x.id===id);
+  if(!ph) return;
+  ph.approved = true;
+  saveVisitorPhotoDoc(ph);
+  showToast("Foto aprobada ✅");
+}
+function deletePhotoAdmin(id){
+  if(!confirm("¿Eliminar esta foto?")) return;
+  visitorPhotos = visitorPhotos.filter(x=>x.id!==id);
+  deleteVisitorPhotoDoc(id);
+  renderPhotoAdminList();
+  showToast("Foto eliminada");
 }
 
 /* ---- NEGOCIOS CERCANOS: visualización pública dentro de la ficha del lugar ---- */
@@ -2290,7 +2466,7 @@ function loadMorePlaces(){
 function applyModalTranslations(){
   if(viewingId){
     const p = places.find(x=>x.id===viewingId);
-    if(p){ renderRules(p); renderPlaceCategoryTags(p); renderNearbyBusinesses(p.id); renderRecommendations(p.id); }
+    if(p){ renderRules(p); renderPlaceCategoryTags(p); renderNearbyBusinesses(p.id); renderRecommendations(p.id); renderVisitorPhotos(p.id); }
   }
   const shareBtn = document.getElementById("share-btn");
   if(shareBtn) shareBtn.textContent = t("📤 Compartir este lugar");
@@ -2326,6 +2502,7 @@ function openView(id){
   renderPlaceCategoryTags(p);
   renderNearbyBusinesses(p.id);
   renderRecommendations(p.id);
+  renderVisitorPhotos(p.id);
   updateItinBtn();
   applyModalTranslations();
   loadWeather(p);
