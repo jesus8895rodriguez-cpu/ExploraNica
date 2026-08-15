@@ -110,6 +110,12 @@ header{background:var(--green);padding:env(safe-area-inset-top,0) 0 0;position:s
 .biz-actions{display:flex;gap:8px;flex-wrap:wrap}
 .biz-btn{font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);text-decoration:none;cursor:pointer}
 .biz-btn-wa{background:#25D366;border-color:#25D366;color:#fff}
+.rec-scroll{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px;margin-top:4px;-webkit-overflow-scrolling:touch}
+.rec-card{flex:0 0 108px;cursor:pointer}
+.rec-card-img{width:108px;height:80px;border-radius:10px;overflow:hidden;background:var(--green-bg);display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:5px}
+.rec-card-img img{width:100%;height:100%;object-fit:cover}
+.rec-card-name{font-size:12px;font-weight:700;color:var(--text);line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rec-card-dept{font-size:10.5px;color:var(--text3);margin-top:2px}
 .chip.chip-lang{background:var(--surface);color:var(--text2);border-color:var(--green);font-weight:700}
 .chip.active{background:var(--green);color:#fff;border-color:var(--green)}
 
@@ -206,6 +212,11 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 
 /* ITINERARY */
 .itin-badge{position:absolute;top:-2px;right:-2px;background:var(--red);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+.notif-item{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid var(--border);cursor:pointer}
+.notif-item span:first-child{font-size:24px;flex-shrink:0}
+.notif-item div{display:flex;flex-direction:column}
+.notif-item b{font-size:13.5px;color:var(--text)}
+.notif-item span:last-child{font-size:12px;color:var(--text3)}
 .itin-item{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--surface)}
 .itin-order{display:flex;flex-direction:column;gap:2px}
 .itin-order button{width:24px;height:19px;border:1px solid var(--border);background:var(--bg);border-radius:5px;cursor:pointer;font-size:10px;color:var(--text2);padding:0}
@@ -392,6 +403,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div id="vm-categories" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px"></div>
       <div id="vm-rules"></div>
       <div id="vm-businesses"></div>
+      <div id="vm-recommendations"></div>
 
       <p class="rate-label" id="rate-question">¿Cómo valorás este lugar?</p>
       <div class="big-stars" id="vm-stars"></div>
@@ -564,6 +576,19 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <a href="tel:102" class="sos-btn"><span>🚑</span><span id="sosAmbulancia">Ambulancia — 102</span></a>
       <div id="sosPlaceSpecific"></div>
       <button class="btn-cancel" style="width:100%;margin-top:14px" onclick="closeOverlay('sosOverlay')" id="sosCloseBtn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS MODAL -->
+<div class="overlay edit-overlay" id="notifOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <h2 id="notifTitle" style="margin:0">🔔 Novedades</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('notifOverlay')">Cerrar</button>
+      </div>
+      <div id="notifList"></div>
     </div>
   </div>
 </div>
@@ -907,6 +932,12 @@ let businesses=[];
 let selectedDepts=[], searchQ="";
 let popularitySort="none";
 let visibleCount=20, lastFilterSignature="";
+let lastSeenTimestamp = 0;
+try{
+  const stored = localStorage.getItem("exploranica_last_seen");
+  if(stored){ lastSeenTimestamp = parseInt(stored); }
+  else { lastSeenTimestamp = Date.now(); localStorage.setItem("exploranica_last_seen", String(lastSeenTimestamp)); }
+}catch(e){}
 let editingId=null, editImgs=[], editCategories=[];
 let viewingId=null, tempRating=0, galIdx=0;
 let deferredPrompt=null, installDismissed=false;
@@ -1249,6 +1280,61 @@ function renderNearbyBusinesses(placeId){
   html += `<p style="text-align:center;margin-top:10px"><a href="#" onclick="openBusinessSubmit(${placeId});return false" style="font-size:12px;color:var(--green-dark);font-weight:700;text-decoration:underline">${addLinkText}</a></p>`;
   html += `</div>`;
   box.innerHTML = html;
+}
+
+/* ---- RECOMENDACIONES PERSONALIZADAS ---- */
+function getFavoriteCategoryProfile(){
+  const counts = {};
+  favorites.forEach(id=>{
+    const p = places.find(x=>x.id===id);
+    if(!p) return;
+    tPlaceCategories(p).forEach(c=>{ counts[c] = (counts[c]||0)+1; });
+  });
+  return counts;
+}
+function getRecommendations(placeId){
+  const current = places.find(x=>x.id===placeId);
+  if(!current) return [];
+  const currentCats = tPlaceCategories(current);
+  const favProfile = getFavoriteCategoryProfile();
+  const scored = places
+    .filter(p=>p.id!==placeId)
+    .map(p=>{
+      const cats = tPlaceCategories(p);
+      let score = 0;
+      cats.forEach(c=>{
+        if(currentCats.includes(c)) score += 2;
+        if(favProfile[c]) score += favProfile[c];
+      });
+      if(p.dept===current.dept) score += 1;
+      return {p, score};
+    })
+    .filter(x=>x.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,4);
+  return scored.map(x=>x.p);
+}
+function renderRecommendations(placeId){
+  const box = document.getElementById("vm-recommendations");
+  if(!box) return;
+  const en = currentLang==="en";
+  const recs = getRecommendations(placeId);
+  if(recs.length===0){ box.innerHTML=""; return; }
+  const title = en ? "🎯 You might also like" : "🎯 También te puede interesar";
+  box.innerHTML = `<div class="rules-box" style="background:var(--surface);border:1px solid var(--border)">
+    <h4 style="color:var(--text)">${title}</h4>
+    <div class="rec-scroll">
+      ${recs.map(p=>{
+        const img = p.imgs&&p.imgs.length ? p.imgs[0] : null;
+        const thumb = img ? `<img src="${img}" alt="${p.name}" loading="lazy" onerror="cardImgError(this,'${p.emoji}')">` : `<span>${p.emoji}</span>`;
+        return `<div class="rec-card" onclick="openView(${p.id})">
+          <div class="rec-card-img">${thumb}</div>
+          <div class="rec-card-name">${tPlaceName(p)}</div>
+          <div class="rec-card-dept">${p.dept}</div>
+        </div>`;
+      }).join("")}
+    </div>
+  </div>`;
 }
 
 /* ---- ENVÍO PÚBLICO DE NEGOCIO ---- */
@@ -2094,6 +2180,31 @@ function cardImgError(imgEl, emoji){
   const parent = imgEl.parentElement;
   if(parent) parent.innerHTML = `<span>${emoji}</span>`;
 }
+function getNewItems(){
+  const newPlaces = places.filter(p=>p.id>lastSeenTimestamp);
+  const newEvents = events.filter(e=>e.id>lastSeenTimestamp);
+  const newBiz = businesses.filter(b=>b.approved && b.id>lastSeenTimestamp);
+  return {newPlaces, newEvents, newBiz, total: newPlaces.length+newEvents.length+newBiz.length};
+}
+function openNotifications(){
+  const {newPlaces, newEvents, newBiz, total} = getNewItems();
+  const en = currentLang==="en";
+  const box = document.getElementById("notifList");
+  if(total===0){
+    box.innerHTML = `<div class="empty"><div class="big">🔔</div><p>${en?"No news since your last visit":"No hay novedades desde tu última visita"}</p></div>`;
+  } else {
+    let html = "";
+    if(newPlaces.length) html += `<h3 style="font-size:13px;margin:10px 0 8px">📍 ${en?"New places":"Lugares nuevos"}</h3>` + newPlaces.map(p=>`<div class="notif-item" onclick="closeOverlay('notifOverlay');openView(${p.id})"><span>${p.emoji}</span><div><b>${tPlaceName(p)}</b><span>${p.dept}</span></div></div>`).join("");
+    if(newEvents.length) html += `<h3 style="font-size:13px;margin:14px 0 8px">📅 ${en?"New events":"Eventos nuevos"}</h3>` + newEvents.map(e=>`<div class="notif-item" onclick="closeOverlay('notifOverlay');openEvents()"><span>${e.emoji}</span><div><b>${tEventName(e)}</b><span>${e.dept}</span></div></div>`).join("");
+    if(newBiz.length) html += `<h3 style="font-size:13px;margin:14px 0 8px">🏪 ${en?"New nearby businesses":"Negocios nuevos"}</h3>` + newBiz.map(b=>`<div class="notif-item" onclick="closeOverlay('notifOverlay');openView(${b.nearPlaceId})"><span>🏪</span><div><b>${b.name}</b><span>${businessTypeLabel(b.type)}</span></div></div>`).join("");
+    box.innerHTML = html;
+  }
+  document.getElementById("notifTitle").textContent = en?"🔔 What's new":"🔔 Novedades";
+  document.getElementById("notifOverlay").classList.add("open");
+  lastSeenTimestamp = Date.now();
+  try{ localStorage.setItem("exploranica_last_seen", String(lastSeenTimestamp)); }catch(e){}
+  render();
+}
 function render(){
   const depts=getDepts();
   const filtered=applySort(getFilteredPlaces());
@@ -2106,7 +2217,9 @@ function render(){
     :`<button class="btn-admin" onclick="openAuthModal()">👤 Identificarme</button>`;
   const themeHtml = `<button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema claro/oscuro">${getEffectiveTheme()==="dark"?"☀️":"🌙"}</button>`;
   const itinBtnHtml = `<button class="btn-theme" style="position:relative" onclick="openItinerary()" title="Mi itinerario" aria-label="Mi itinerario">🗺️${itinerary.length?`<span class="itin-badge">${itinerary.length}</span>`:''}</button>`;
-  document.getElementById("headerRight").innerHTML = `<div style="display:flex;gap:6px;align-items:center">${itinBtnHtml}${themeHtml}${userHtml}${adminHtml}</div>`;
+  const newCount = getNewItems().total;
+  const notifBtnHtml = `<button class="btn-theme" style="position:relative" onclick="openNotifications()" title="Novedades" aria-label="Novedades">🔔${newCount?`<span class="itin-badge">${newCount}</span>`:''}</button>`;
+  document.getElementById("headerRight").innerHTML = `<div style="display:flex;gap:6px;align-items:center">${notifBtnHtml}${itinBtnHtml}${themeHtml}${userHtml}${adminHtml}</div>`;
 
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
@@ -2177,7 +2290,7 @@ function loadMorePlaces(){
 function applyModalTranslations(){
   if(viewingId){
     const p = places.find(x=>x.id===viewingId);
-    if(p){ renderRules(p); renderPlaceCategoryTags(p); renderNearbyBusinesses(p.id); }
+    if(p){ renderRules(p); renderPlaceCategoryTags(p); renderNearbyBusinesses(p.id); renderRecommendations(p.id); }
   }
   const shareBtn = document.getElementById("share-btn");
   if(shareBtn) shareBtn.textContent = t("📤 Compartir este lugar");
@@ -2212,6 +2325,7 @@ function openView(id){
   renderRules(p);
   renderPlaceCategoryTags(p);
   renderNearbyBusinesses(p.id);
+  renderRecommendations(p.id);
   updateItinBtn();
   applyModalTranslations();
   loadWeather(p);
