@@ -1,39 +1,23 @@
 # ExploraNica 🇳🇮
 
-**Progressive Web App** para descubrir, explorar y planificar visitas a los destinos turísticos de Nicaragua.
+ExploraNica es una **Progressive Web App (PWA)** diseñada para descubrir, explorar y planificar visitas a los destinos turísticos de Nicaragua. Su objetivo es ofrecer una experiencia fluida, rápida y accesible desde cualquier dispositivo, incluso sin conexión.
 
 ## Instalación y ejecución
 
-ExploraNica es una aplicación de un solo archivo (`index.html`), sin dependencias que instalar.
-
-1. Cloná o descargá este repositorio  
-2. Abrí `index.html` directamente en cualquier navegador — no requiere servidor ni build  
-3. Versión desplegada: **https://[tu-usuario].github.io/ExploraNica/**
+ExploraNica es una aplicación de un solo archivo (`index.html`), sin dependencias externas ni procesos de compilación. Para ejecutarla, basta con clonar o descargar el repositorio, abrir el archivo `index.html` directamente en cualquier navegador y listo. No requiere servidor ni instalación adicional. También está disponible una versión desplegada en GitHub Pages:  
+👉 **https://jesus8895rodriguez-cpu.github.io/ExploraNica/*
 
 ## Tecnologías utilizadas
 
-| Capa | Tecnología |
-|---|---|
-| Frontend | HTML5, CSS3, JavaScript ES6+ puro — sin frameworks |
-| Base de datos | Firebase Firestore (tiempo real, persistencia offline) |
-| Mapa | Leaflet + OpenStreetMap |
-| Clima | Open-Meteo |
-| Autenticación | Firebase Auth — enlace de acceso por correo, sin contraseña |
-| PWA | Manifest + Service Worker, instalable |
+El proyecto está construido con tecnologías web modernas y servicios en la nube: HTML5, CSS3 y JavaScript ES6+ puro (sin frameworks), Firebase Firestore para base de datos en tiempo real y persistencia offline, Leaflet junto con OpenStreetMap para mapas interactivos, Open-Meteo para información climática, Firebase Auth para autenticación sin contraseña mediante enlace mágico por correo, y Manifest + Service Worker para instalación como PWA.
 
 ## Seguridad y roles del sistema
 
-La aplicación define **tres roles** con permisos diferenciados:
-
-| Rol | Acceso | Permisos |
-|---|---|---|
-| **Usuario** (visitante) | Se identifica con su correo (enlace mágico, sin contraseña) | Explorar, valorar, comentar, favoritos, itinerario, enviar negocios/fotos para revisión |
-| **Administrador** | Todo lo del Usuario, más: crear/editar/eliminar lugares y eventos, aprobar o rechazar negocios y fotos enviadas, ver estadísticas |
-| **Auditor** | Solo lectura: ver estadísticas y las colas de negocios/fotos (pendientes y publicados) — **sin** botones de crear, editar, aprobar ni eliminar en ningún lado |
-
-Ambos roles (Admin/Auditor) inician sesión desde el mismo botón "🔐 Admin" del encabezado; el sistema reconoce cuál contraseña se ingresó y asigna el rol correspondiente.
+La aplicación define tres roles con permisos diferenciados. El **Usuario visitante** se identifica mediante enlace mágico enviado a su correo y puede explorar, valorar, comentar, marcar favoritos, crear itinerarios y enviar negocios o fotos para revisión. El **Administrador** tiene acceso restringido a funciones de gestión y moderación de contenido, incluyendo la creación, edición y eliminación de lugares o eventos, así como la aprobación o rechazo de negocios y fotos enviadas. El **Auditor** cuenta con acceso de solo lectura, limitado a estadísticas y revisión de colas de negocios o fotos. Ambos roles administrativos inician sesión desde el mismo botón “🔐 Admin” del encabezado, y el sistema asigna el rol según las credenciales ingresadas.
 
 ## Modelo de datos
+
+El modelo de datos se organiza de manera sencilla y clara, relacionando lugares, eventos, valoraciones, comentarios, negocios y fotos enviadas por visitantes:
 
 ```mermaid
 classDiagram
@@ -77,3 +61,9 @@ classDiagram
   Lugar "1" --> "*" Comentario : recibe
   Lugar "1" --> "*" Negocio : tiene cerca
   Lugar "1" --> "*" FotoVisitante : tiene
+
+Funcionalidades principalesExploraNica ofrece una experiencia completa para el usuario: búsqueda avanzada con filtros por categoría, departamento o popularidad; mapa interactivo con clima en tiempo real; itinerarios personalizados con distancia y tiempo estimado entre paradas; recomendaciones según categorías favoritas; sistema de logros y gamificación; directorio de negocios cercanos y galería de fotos moderadas; notificaciones internas de contenido nuevo; e interfaz bilingüe en español e inglés.
+
+ContribucionesExploraNica es un proyecto de código abierto. Para colaborar, se recomienda hacer un fork del repositorio, crear una rama nueva, realizar los cambios y enviar un pull request para revisión.
+
+Desarrollado por Francisco Rodríguez, estudiante de Contabilidad y Finanzas en la UNAN-Managua, apasionado por el desarrollo web y las aplicaciones PWA. Repositorio principal: jesus8895rodriguez-cpu.github.io
