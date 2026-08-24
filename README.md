@@ -11,6 +11,13 @@ No requiere servidor ni instalación adicional.
 Versión desplegada:  
 👉 **https://jesus8895rodriguez-cpu.github.io/ExploraNica/**
 
+## Clonar el repositorio
+
+Si querés obtener una copia local de ExploraNica, podés clonar este repositorio con el siguiente comando:
+
+```bash
+git clone https://github.com/jesus8895rodriguez-cpu/ExploraNica.git
+
 ## Tecnologías utilizadas
 
 El proyecto está construido con tecnologías web modernas y servicios en la nube:  
