@@ -28,6 +28,31 @@ Ambos roles administrativos inician sesión desde el mismo botón “🔐 Admin�
 
 El modelo de datos se organiza de manera sencilla y clara, relacionando lugares, eventos, valoraciones, comentarios, negocios y fotos enviadas por visitantes:
 
+## Funcionalidades principales
+
+ExploraNica ofrece una experiencia completa para el usuario:  
+- Búsqueda avanzada con filtros por categoría, departamento o popularidad  
+- Mapa interactivo con clima en tiempo real  
+- Itinerarios personalizados con distancia y tiempo estimado entre paradas  
+- Recomendaciones según categorías favoritas  
+- Sistema de logros y gamificación  
+- Directorio de negocios cercanos y galería de fotos moderadas  
+- Notificaciones internas de contenido nuevo  
+- Interfaz bilingüe en español e inglés  
+
+## Contribuciones
+
+ExploraNica es un proyecto de código abierto.  
+Para colaborar, se recomienda hacer un fork del repositorio, crear una rama nueva, realizar los cambios y enviar un pull request para revisión.
+
+## Licencia
+
+El proyecto está bajo la licencia **MIT**, lo que permite su uso, modificación y distribución libre con atribución.
+
+## Autoría
+
+Desarrollado por **el grupo explora Nica**, estudiante de Contabilidad y Finanzas en la UNAN-Managua, apasionado por el desarrollo web y las aplicaciones PWA.
+
 ```mermaid
 classDiagram
   class Lugar {
@@ -76,28 +101,3 @@ classDiagram
   Lugar "1" --> "*" Comentario : recibe
   Lugar "1" --> "*" Negocio : tiene cerca
   Lugar "1" --> "*" FotoVisitante : tiene 
-
-## Funcionalidades principales
-
-ExploraNica ofrece una experiencia completa para el usuario:  
-- Búsqueda avanzada con filtros por categoría, departamento o popularidad  
-- Mapa interactivo con clima en tiempo real  
-- Itinerarios personalizados con distancia y tiempo estimado entre paradas  
-- Recomendaciones según categorías favoritas  
-- Sistema de logros y gamificación  
-- Directorio de negocios cercanos y galería de fotos moderadas  
-- Notificaciones internas de contenido nuevo  
-- Interfaz bilingüe en español e inglés  
-
-## Contribuciones
-
-ExploraNica es un proyecto de código abierto.  
-Para colaborar, se recomienda hacer un fork del repositorio, crear una rama nueva, realizar los cambios y enviar un pull request para revisión.
-
-## Licencia
-
-El proyecto está bajo la licencia **MIT**, lo que permite su uso, modificación y distribución libre con atribución.
-
-## Autoría
-
-Desarrollado por **el grupo explora Nica**, estudiante de Contabilidad y Finanzas en la UNAN-Managua, apasionado por el desarrollo web y las aplicaciones PWA.
