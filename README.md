@@ -75,6 +75,7 @@ classDiagram
   Lugar "1" --> "*" Valoracion : recibe
   Lugar "1" --> "*" Comentario : recibe
   Lugar "1" --> "*" Negocio : tiene cerca
+  Lugar "1" --> "*" FotoVisitante : tiene 
 
 ## Funcionalidades principales
 
