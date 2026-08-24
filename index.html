@@ -466,6 +466,22 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
   </div>
 </div>
 
+<!-- AUDITOR MENU MODAL (solo lectura) -->
+<div class="overlay edit-overlay" id="auditorMenuOverlay">
+  <div class="sheet edit-sheet login-sheet">
+    <div class="sheet-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:8px">🔍</div>
+      <h2 style="text-align:center;margin-bottom:4px">Panel de Auditoría</h2>
+      <p style="text-align:center;font-size:12.5px;color:var(--text3);margin-bottom:20px">Acceso de solo lectura — sin permisos para editar o eliminar</p>
+      <button class="menu-item-btn" onclick="closeOverlay('auditorMenuOverlay');openStatsPanel()">📊 Ver estadísticas</button>
+      <button class="menu-item-btn" onclick="closeOverlay('auditorMenuOverlay');openBusinessAdmin()">🏪 Ver negocios (pendientes y publicados)</button>
+      <button class="menu-item-btn" onclick="closeOverlay('auditorMenuOverlay');openPhotoAdmin()">📸 Ver fotos de visitantes</button>
+      <button class="menu-item-btn menu-item-danger" onclick="closeOverlay('auditorMenuOverlay');logout()">🚪 Cerrar sesión</button>
+      <button class="btn-cancel" style="width:100%" onclick="closeOverlay('auditorMenuOverlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- BUSINESS SUBMIT MODAL (público) -->
 <div class="overlay edit-overlay" id="businessSubmitOverlay">
   <div class="sheet edit-sheet">
@@ -502,7 +518,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         <h2 style="margin:0">🏪 Negocios Cercanos</h2>
         <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('businessAdminOverlay')">Cerrar</button>
       </div>
-      <button class="btn-save" style="width:100%;margin:10px 0 16px" onclick="openBusinessAdminAdd()">+ Agregar negocio directamente</button>
+      <button class="btn-save" id="addBusinessDirectBtn" style="width:100%;margin:10px 0 16px" onclick="openBusinessAdminAdd()">+ Agregar negocio directamente</button>
       <div id="businessAdminList"></div>
     </div>
   </div>
@@ -829,6 +845,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 
 <script>
 const ADMIN_PASS = "explora2025";
+const AUDITOR_PASS = "auditor2025";
 const PL_KEY = "exploranica_v4_places";
 const RT_KEY = "exploranica_v4_ratings";
 const CM_KEY = "exploranica_v4_comments";
@@ -1053,7 +1070,7 @@ function loadLanguage(){
   if(si) si.placeholder = t("Buscar lugar o departamento...");
 }
 
-let places=[], ratings={}, comments={}, isAdmin=false;
+let places=[], ratings={}, comments={}, isAdmin=false, isAuditor=false;
 let businesses=[];
 let visitorPhotos=[];
 let selectedDepts=[], searchQ="";
@@ -1110,10 +1127,15 @@ const eventsDoc = firebaseOk ? db.collection("exploranica").doc("events") : null
 const businessesCollection = firebaseOk ? db.collection("exploranica_negocios") : null;
 const visitorPhotosCollection = firebaseOk ? db.collection("exploranica_fotos_visitantes") : null;
 
-/* ---- IDENTIFICACIÓN SIMPLE POR NOMBRE (sin contraseña) ---- */
+/* ---- IDENTIFICACIÓN POR CORREO (enlace mágico, sin contraseña) ---- */
 const NAME_KEY = "exploranica_visitor_name";
 const EMAIL_KEY = "exploranica_pending_email";
-try{ currentUser = localStorage.getItem(NAME_KEY) ? { name: localStorage.getItem(NAME_KEY) } : null; }catch(e){ currentUser = null; }
+const VERIFIED_EMAIL_KEY = "exploranica_verified_email";
+try{
+  const savedName = localStorage.getItem(NAME_KEY);
+  const savedEmail = localStorage.getItem(VERIFIED_EMAIL_KEY);
+  currentUser = savedName ? { name: savedName, email: savedEmail || undefined } : null;
+}catch(e){ currentUser = null; }
 
 function openAuthModal(){
   document.getElementById("authName").value = currentUser ? currentUser.name : "";
@@ -1226,7 +1248,11 @@ function checkEmailLinkSignIn(){
     let name = "";
     try{ name = localStorage.getItem(NAME_KEY) || ""; }catch(e){}
     currentUser = { name: name || email.split("@")[0], email };
-    try{ localStorage.removeItem(EMAIL_KEY); }catch(e){}
+    try{
+      localStorage.removeItem(EMAIL_KEY);
+      localStorage.setItem(NAME_KEY, currentUser.name);
+      localStorage.setItem(VERIFIED_EMAIL_KEY, email);
+    }catch(e){}
     window.history.replaceState({}, document.title, window.location.pathname);
     showToast(`¡Hola, ${currentUser.name}! ✅`);
     render();
@@ -1251,7 +1277,7 @@ function openUserMenu(){
 
 function doUserLogout(){
   currentUser = null;
-  try{ localStorage.removeItem(NAME_KEY); }catch(e){}
+  try{ localStorage.removeItem(NAME_KEY); localStorage.removeItem(VERIFIED_EMAIL_KEY); }catch(e){}
   closeOverlay("userMenuOverlay");
   showToast("Listo, ya no estás identificado");
   render();
@@ -1486,10 +1512,10 @@ function renderPhotoAdminList(){
     return `<div class="biz-card" style="${isPending?'border-color:var(--amber)':''}">
       <img src="${ph.imageData}" style="width:100%;height:140px;object-fit:cover;border-radius:8px;margin-bottom:8px"/>
       <p class="biz-desc">📍 ${placeNameOf(ph.placeId)}${ph.submittedByName?' · '+ph.submittedByName:''}</p>
-      <div class="biz-actions">
+      ${isAdmin?`<div class="biz-actions">
         ${isPending?`<button class="biz-btn biz-btn-wa" onclick="approvePhoto(${ph.id})">✓ Aprobar</button>`:''}
         <button class="biz-btn" style="color:var(--red)" onclick="deletePhotoAdmin(${ph.id})">🗑️ Eliminar</button>
-      </div>
+      </div>`:''}
     </div>`;
   }
   let html = "";
@@ -1678,6 +1704,7 @@ function useMyLocationForBusiness(){
 /* ---- ADMINISTRACIÓN DE NEGOCIOS ---- */
 function openBusinessAdmin(){
   renderBusinessAdminList();
+  document.getElementById("addBusinessDirectBtn").style.display = isAdmin ? "block" : "none";
   document.getElementById("businessAdminOverlay").classList.add("open");
 }
 function renderBusinessAdminList(){
@@ -1691,10 +1718,10 @@ function renderBusinessAdminList(){
       <div class="biz-card-head"><b>${b.name}</b><span class="biz-type-tag">${businessTypeLabel(b.type)}</span></div>
       <p class="biz-desc">📍 ${placeNameOf(b.nearPlaceId)} · 📞 ${b.phone}${b.ownerName?' · '+b.ownerName:''}</p>
       ${b.desc?`<p class="biz-desc">${b.desc}</p>`:''}
-      <div class="biz-actions">
+      ${isAdmin?`<div class="biz-actions">
         ${isPending?`<button class="biz-btn biz-btn-wa" onclick="approveBusiness(${b.id})">✓ Aprobar</button>`:`<button class="biz-btn" onclick="openBusinessAdminEdit(${b.id})">✏️ Editar</button>`}
         <button class="biz-btn" style="color:var(--red)" onclick="deleteBusinessAdmin(${b.id})">🗑️ Eliminar</button>
-      </div>
+      </div>`:''}
     </div>`;
   }
   let html = "";
@@ -1802,6 +1829,9 @@ function getPosNeg(id){const c=getComments(id);return{pos:c.filter(x=>x.type==="
 /* ---- PANEL DE ESTADÍSTICAS (admin) ---- */
 function openAdminMenu(){
   document.getElementById("adminMenuOverlay").classList.add("open");
+}
+function openAuditorMenu(){
+  document.getElementById("auditorMenuOverlay").classList.add("open");
 }
 function openStatsPanel(){
   renderStatsPanel();
@@ -2481,6 +2511,8 @@ function render(){
 
   const adminHtml = isAdmin
     ?`<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openAdminMenu()">⚙️ Admin</button>`
+    : isAuditor
+    ?`<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openAuditorMenu()">🔍 Auditor</button>`
     :`<button class="btn-admin" onclick="openLogin()">🔐 Admin</button>`;
   const userHtml = currentUser
     ?`<button class="btn-admin" onclick="openUserMenu()">👤 ${currentUser.name}</button>`
@@ -2798,8 +2830,19 @@ function launchConfetti(){
 
 /* ---- LOGIN ---- */
 function openLogin(){document.getElementById("pwdInput").value="";document.getElementById("pwdErr").style.display="none";document.getElementById("loginOverlay").classList.add("open");setTimeout(()=>document.getElementById("pwdInput").focus(),350);}
-function doLogin(){if(document.getElementById("pwdInput").value===ADMIN_PASS){isAdmin=true;closeOverlay("loginOverlay");render();showToast("Bienvenido, administrador ✅");}else{document.getElementById("pwdErr").style.display="block";}}
-function logout(){isAdmin=false;render();}
+function doLogin(){
+  const val = document.getElementById("pwdInput").value;
+  if(val===ADMIN_PASS){
+    isAdmin=true; isAuditor=false;
+    closeOverlay("loginOverlay");render();showToast("Bienvenido, administrador ✅");
+  } else if(val===AUDITOR_PASS){
+    isAdmin=false; isAuditor=true;
+    closeOverlay("loginOverlay");render();showToast("Bienvenido, auditor 🔍");
+  } else {
+    document.getElementById("pwdErr").style.display="block";
+  }
+}
+function logout(){isAdmin=false; isAuditor=false; render();}
 
 function restoreDefaults(){
   if(!confirm("¿Restaurar los 16 lugares por defecto? Esto NO borra los lugares que ya agregaste, solo agrega los que falten.")) return;
