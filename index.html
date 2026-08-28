@@ -221,6 +221,9 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .notif-item b{font-size:13.5px;color:var(--text)}
 .notif-item span:last-child{font-size:12px;color:var(--text3)}
 .ach-item{display:flex;align-items:center;gap:14px;padding:12px 10px;border-radius:12px;margin-bottom:8px;border:1.5px solid var(--border)}
+.ach-section-header{font-size:13px;font-weight:800;color:var(--green-dark);margin:16px 0 8px;padding-bottom:4px;border-bottom:2px solid var(--green-bg)}
+.ach-section-header:first-child{margin-top:0}
+.ach-section-header span{font-weight:600;color:var(--text3);font-size:11.5px}
 .ach-progress-label{font-size:13px;color:var(--text2);text-align:center;margin-bottom:8px;font-weight:700}
 .ach-progress-track{width:100%;height:10px;background:var(--border);border-radius:20px;overflow:hidden;margin-bottom:6px}
 .ach-progress-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:20px;transition:width 0.6s ease}
@@ -696,7 +699,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 
       <div class="edit-actions">
         <button class="btn-cancel" onclick="clearAllFilters()" id="filtersClearBtn">Limpiar todo</button>
-        <button class="btn-save" onclick="closeOverlay('filtersOverlay');render()" id="filtersApplyBtn">Ver resultados</button>
+        <button class="btn-save" onclick="closeOverlay('filtersOverlay');trackFiltersUsed();render()" id="filtersApplyBtn">Ver resultados</button>
       </div>
     </div>
   </div>
@@ -979,6 +982,9 @@ function getFavoriteDeptCount(){
 function hasFavoriteCategory(cat){
   return favorites.some(id=>{ const p = places.find(x=>x.id===id); return p && tPlaceCategories(p).includes(cat); });
 }
+function hasFavoriteDept(dept){
+  return favorites.some(id=>{ const p = places.find(x=>x.id===id); return p && p.dept===dept; });
+}
 function getMyRatingsCount(){
   let myRated = [];
   try{ myRated = JSON.parse(localStorage.getItem("exploranica_my_ratings")||"[]"); }catch(e){}
@@ -996,25 +1002,85 @@ function getMyCommentsCount(){
   Object.values(comments).forEach(list=>{ count += (list||[]).filter(c=>c.authorDevice===myDevice).length; });
   return count;
 }
+function usedFlag(key){ try{ return localStorage.getItem(key)==="1"; }catch(e){ return false; } }
+
+const ACH_CATS = {
+  favs: {es:"❤️ Favoritos", en:"❤️ Favorites"},
+  cats: {es:"🎯 Categorías", en:"🎯 Categories"},
+  depts: {es:"📍 Departamentos", en:"📍 Departments"},
+  travel: {es:"🌎 Viajero", en:"🌎 Traveler"},
+  itin: {es:"🗓️ Itinerario", en:"🗓️ Itinerary"},
+  ratings: {es:"⭐ Valoraciones", en:"⭐ Ratings"},
+  comments: {es:"💬 Comentarios", en:"💬 Comments"},
+  style: {es:"🎮 Estilo de uso", en:"🎮 Usage style"}
+};
+
 const ACHIEVEMENTS = [
-  {key:"primer_favorito", icon:"❤️", es:"Primer paso", en:"First step", desc_es:"Marcá tu primer lugar favorito", desc_en:"Favorite your first place", check:()=>favorites.length>=1},
-  {key:"explorador", icon:"🗺️", es:"Explorador", en:"Explorer", desc_es:"Marcá 5 lugares como favoritos", desc_en:"Favorite 5 places", check:()=>favorites.length>=5},
-  {key:"trotamundos", icon:"🌎", es:"Trotamundos", en:"Globetrotter", desc_es:"Favoritos en 5 departamentos distintos", desc_en:"Favorites across 5 different departments", check:()=>getFavoriteDeptCount()>=5},
-  {key:"aventurero", icon:"🪂", es:"Alma aventurera", en:"Adventurous soul", desc_es:"Marcá como favorito un lugar de aventura", desc_en:"Favorite an adventure place", check:()=>hasFavoriteCategory("aventura")},
-  {key:"playero", icon:"🏖️", es:"Amante del mar", en:"Sea lover", desc_es:"Marcá como favorita una playa", desc_en:"Favorite a beach", check:()=>hasFavoriteCategory("playa")},
-  {key:"critico", icon:"⭐", es:"Primera opinión", en:"First opinion", desc_es:"Valorá tu primer lugar", desc_en:"Rate your first place", check:()=>getMyRatingsCount()>=1},
-  {key:"voz_activa", icon:"💬", es:"Voz activa", en:"Active voice", desc_es:"Dejá 3 comentarios", desc_en:"Leave 3 comments", check:()=>getMyCommentsCount()>=3},
-  {key:"planificador", icon:"🗓️", es:"Planificador", en:"Planner", desc_es:"Agregá 3 lugares a tu itinerario", desc_en:"Add 3 places to your itinerary", check:()=>itinerary.length>=3},
-  {key:"bilingue", icon:"🌐", es:"Bilingüe", en:"Bilingual", desc_es:"Probá la app en inglés", desc_en:"Try the app in English", check:()=>{try{return localStorage.getItem("exploranica_used_english")==="1";}catch(e){return false;}}},
-  {key:"nocturno", icon:"🌙", es:"Ave nocturna", en:"Night owl", desc_es:"Activá el modo oscuro", desc_en:"Turn on dark mode", check:()=>{try{return localStorage.getItem("exploranica_used_dark")==="1";}catch(e){return false;}}},
-  {key:"azar", icon:"🎲", es:"Aventura al azar", en:"Random adventure", desc_es:"Usá el botón Sorpréndeme", desc_en:"Use the Surprise Me button", check:()=>{try{return localStorage.getItem("exploranica_used_surprise")==="1";}catch(e){return false;}}},
-  {key:"embajador", icon:"📤", es:"Embajador", en:"Ambassador", desc_es:"Compartí un lugar con alguien", desc_en:"Share a place with someone", check:()=>{try{return localStorage.getItem("exploranica_used_share")==="1";}catch(e){return false;}}}
+  // ❤️ Favoritos por cantidad
+  {key:"primer_favorito", cat:"favs", icon:"❤️", es:"Primer paso", en:"First step", desc_es:"Marcá tu primer lugar favorito", desc_en:"Favorite your first place", check:()=>favorites.length>=1},
+  {key:"fav_3", cat:"favs", icon:"💗", es:"Curioso", en:"Curious", desc_es:"Marcá 3 lugares como favoritos", desc_en:"Favorite 3 places", check:()=>favorites.length>=3},
+  {key:"explorador", cat:"favs", icon:"🗺️", es:"Explorador", en:"Explorer", desc_es:"Marcá 5 lugares como favoritos", desc_en:"Favorite 5 places", check:()=>favorites.length>=5},
+  {key:"fav_8", cat:"favs", icon:"📌", es:"Coleccionista", en:"Collector", desc_es:"Marcá 8 lugares como favoritos", desc_en:"Favorite 8 places", check:()=>favorites.length>=8},
+  {key:"fav_12", cat:"favs", icon:"🧳", es:"Gran viajero", en:"Great traveler", desc_es:"Marcá 12 lugares como favoritos", desc_en:"Favorite 12 places", check:()=>favorites.length>=12},
+  {key:"fav_16", cat:"favs", icon:"👑", es:"Maestro explorador", en:"Master explorer", desc_es:"Marcá los 16 lugares como favoritos", desc_en:"Favorite all 16 places", check:()=>favorites.length>=16},
+
+  // 🎯 Favoritos por categoría (las 8 categorías)
+  {key:"cat_naturaleza", cat:"cats", icon:"🌿", es:"Amante de la naturaleza", en:"Nature lover", desc_es:"Favorité un lugar de naturaleza", desc_en:"Favorite a nature place", check:()=>hasFavoriteCategory("naturaleza")},
+  {key:"cat_senderismo", cat:"cats", icon:"🥾", es:"Excursionista", en:"Hiker", desc_es:"Favorité un lugar de senderismo", desc_en:"Favorite a hiking place", check:()=>hasFavoriteCategory("senderismo")},
+  {key:"aventurero", cat:"cats", icon:"🪂", es:"Alma aventurera", en:"Adventurous soul", desc_es:"Favorité un lugar de aventura", desc_en:"Favorite an adventure place", check:()=>hasFavoriteCategory("aventura")},
+  {key:"cat_cultura", cat:"cats", icon:"🎭", es:"Amante de la cultura", en:"Culture lover", desc_es:"Favorité un lugar cultural", desc_en:"Favorite a cultural place", check:()=>hasFavoriteCategory("cultura")},
+  {key:"cat_gastronomia", cat:"cats", icon:"🍽️", es:"Foodie nica", en:"Nica foodie", desc_es:"Favorité un lugar de gastronomía", desc_en:"Favorite a gastronomy place", check:()=>hasFavoriteCategory("gastronomia")},
+  {key:"cat_relajacion", cat:"cats", icon:"🧘", es:"Buscador de paz", en:"Peace seeker", desc_es:"Favorité un lugar de relajación", desc_en:"Favorite a relaxation place", check:()=>hasFavoriteCategory("relajacion")},
+  {key:"cat_historia", cat:"cats", icon:"🏛️", es:"Amante de la historia", en:"History buff", desc_es:"Favorité un lugar histórico", desc_en:"Favorite a historical place", check:()=>hasFavoriteCategory("historia")},
+  {key:"playero", cat:"cats", icon:"🏖️", es:"Amante del mar", en:"Sea lover", desc_es:"Favorité una playa", desc_en:"Favorite a beach", check:()=>hasFavoriteCategory("playa")},
+
+  // 📍 Favoritos por departamento (los 10 departamentos)
+  {key:"dept_leon", cat:"depts", icon:"📍", es:"Explorador de León", en:"León explorer", desc_es:"Favorité un lugar en León", desc_en:"Favorite a place in León", check:()=>hasFavoriteDept("León")},
+  {key:"dept_granada", cat:"depts", icon:"📍", es:"Explorador de Granada", en:"Granada explorer", desc_es:"Favorité un lugar en Granada", desc_en:"Favorite a place in Granada", check:()=>hasFavoriteDept("Granada")},
+  {key:"dept_masaya", cat:"depts", icon:"📍", es:"Explorador de Masaya", en:"Masaya explorer", desc_es:"Favorité un lugar en Masaya", desc_en:"Favorite a place in Masaya", check:()=>hasFavoriteDept("Masaya")},
+  {key:"dept_managua", cat:"depts", icon:"📍", es:"Explorador de Managua", en:"Managua explorer", desc_es:"Favorité un lugar en Managua", desc_en:"Favorite a place in Managua", check:()=>hasFavoriteDept("Managua")},
+  {key:"dept_rivas", cat:"depts", icon:"📍", es:"Explorador de Rivas", en:"Rivas explorer", desc_es:"Favorité un lugar en Rivas", desc_en:"Favorite a place in Rivas", check:()=>hasFavoriteDept("Rivas")},
+  {key:"dept_esteli", cat:"depts", icon:"📍", es:"Explorador de Estelí", en:"Estelí explorer", desc_es:"Favorité un lugar en Estelí", desc_en:"Favorite a place in Estelí", check:()=>hasFavoriteDept("Estelí")},
+  {key:"dept_madriz", cat:"depts", icon:"📍", es:"Explorador de Madriz", en:"Madriz explorer", desc_es:"Favorité un lugar en Madriz", desc_en:"Favorite a place in Madriz", check:()=>hasFavoriteDept("Madriz")},
+  {key:"dept_jinotega", cat:"depts", icon:"📍", es:"Explorador de Jinotega", en:"Jinotega explorer", desc_es:"Favorité un lugar en Jinotega", desc_en:"Favorite a place in Jinotega", check:()=>hasFavoriteDept("Jinotega")},
+  {key:"dept_rsj", cat:"depts", icon:"📍", es:"Explorador de Río San Juan", en:"Río San Juan explorer", desc_es:"Favorité un lugar en Río San Juan", desc_en:"Favorite a place in Río San Juan", check:()=>hasFavoriteDept("Río San Juan")},
+  {key:"dept_raccs", cat:"depts", icon:"🏝️", es:"Explorador del Caribe", en:"Caribbean explorer", desc_es:"Favorité un lugar en la costa Caribe (RACCS)", desc_en:"Favorite a place on the Caribbean coast", check:()=>hasFavoriteDept("RACCS")},
+
+  // 🌎 Trotamundos por cantidad de departamentos
+  {key:"trotamundos", cat:"travel", icon:"🌎", es:"Trotamundos", en:"Globetrotter", desc_es:"Favoritos en 5 departamentos distintos", desc_en:"Favorites across 5 different departments", check:()=>getFavoriteDeptCount()>=5},
+  {key:"travel_7", cat:"travel", icon:"✈️", es:"Viajero incansable", en:"Tireless traveler", desc_es:"Favoritos en 7 departamentos distintos", desc_en:"Favorites across 7 different departments", check:()=>getFavoriteDeptCount()>=7},
+  {key:"travel_10", cat:"travel", icon:"🇳🇮", es:"Conocedor de Nicaragua", en:"Nicaragua expert", desc_es:"Favoritos en los 10 departamentos", desc_en:"Favorites across all 10 departments", check:()=>getFavoriteDeptCount()>=10},
+
+  // 🗓️ Itinerario
+  {key:"planificador", cat:"itin", icon:"🗓️", es:"Planificador", en:"Planner", desc_es:"Agregá 3 lugares a tu itinerario", desc_en:"Add 3 places to your itinerary", check:()=>itinerary.length>=3},
+  {key:"itin_6", cat:"itin", icon:"📋", es:"Organizador experto", en:"Expert organizer", desc_es:"Agregá 6 lugares a tu itinerario", desc_en:"Add 6 places to your itinerary", check:()=>itinerary.length>=6},
+  {key:"itin_10", cat:"itin", icon:"🧭", es:"Maestro de rutas", en:"Route master", desc_es:"Agregá 10 lugares a tu itinerario", desc_en:"Add 10 places to your itinerary", check:()=>itinerary.length>=10},
+
+  // ⭐ Valoraciones
+  {key:"critico", cat:"ratings", icon:"⭐", es:"Primera opinión", en:"First opinion", desc_es:"Valorá tu primer lugar", desc_en:"Rate your first place", check:()=>getMyRatingsCount()>=1},
+  {key:"rate_3", cat:"ratings", icon:"⭐", es:"Crítico activo", en:"Active critic", desc_es:"Valorá 3 lugares", desc_en:"Rate 3 places", check:()=>getMyRatingsCount()>=3},
+  {key:"rate_7", cat:"ratings", icon:"🌟", es:"Crítico experto", en:"Expert critic", desc_es:"Valorá 7 lugares", desc_en:"Rate 7 places", check:()=>getMyRatingsCount()>=7},
+
+  // 💬 Comentarios
+  {key:"voz_activa", cat:"comments", icon:"💬", es:"Voz activa", en:"Active voice", desc_es:"Dejá 3 comentarios", desc_en:"Leave 3 comments", check:()=>getMyCommentsCount()>=3},
+  {key:"comment_6", cat:"comments", icon:"💬", es:"Comentarista frecuente", en:"Frequent commenter", desc_es:"Dejá 6 comentarios", desc_en:"Leave 6 comments", check:()=>getMyCommentsCount()>=6},
+  {key:"comment_10", cat:"comments", icon:"📢", es:"Voz de la comunidad", en:"Voice of the community", desc_es:"Dejá 10 comentarios", desc_en:"Leave 10 comments", check:()=>getMyCommentsCount()>=10},
+
+  // 🎮 Estilo de uso
+  {key:"bilingue", cat:"style", icon:"🌐", es:"Bilingüe", en:"Bilingual", desc_es:"Probá la app en inglés", desc_en:"Try the app in English", check:()=>usedFlag("exploranica_used_english")},
+  {key:"nocturno", cat:"style", icon:"🌙", es:"Ave nocturna", en:"Night owl", desc_es:"Activá el modo oscuro", desc_en:"Turn on dark mode", check:()=>usedFlag("exploranica_used_dark")},
+  {key:"azar", cat:"style", icon:"🎲", es:"Aventura al azar", en:"Random adventure", desc_es:"Usá el botón Sorpréndeme", desc_en:"Use the Surprise Me button", check:()=>usedFlag("exploranica_used_surprise")},
+  {key:"embajador", cat:"style", icon:"📤", es:"Embajador", en:"Ambassador", desc_es:"Compartí un lugar con alguien", desc_en:"Share a place with someone", check:()=>usedFlag("exploranica_used_share")},
+  {key:"style_map", cat:"style", icon:"🗺️", es:"Cartógrafo", en:"Cartographer", desc_es:"Abrí el mapa general", desc_en:"Open the general map", check:()=>usedFlag("exploranica_used_map")},
+  {key:"style_search", cat:"style", icon:"🔍", es:"Buscador nato", en:"Natural searcher", desc_es:"Usá la barra de búsqueda", desc_en:"Use the search bar", check:()=>usedFlag("exploranica_used_search")},
+  {key:"style_filters", cat:"style", icon:"🎚️", es:"Filtrador pro", en:"Pro filterer", desc_es:"Usá Filtros Avanzados", desc_en:"Use Advanced Filters", check:()=>usedFlag("exploranica_used_filters")},
+  {key:"style_business", cat:"style", icon:"🏪", es:"Guía local", en:"Local guide", desc_es:"Sugerí un negocio cercano", desc_en:"Suggest a nearby business", check:()=>usedFlag("exploranica_used_business_submit")}
 ];
 function getAchievementLevel(){
   const count = ACHIEVEMENTS.filter(a=>a.check()).length;
-  if(count>=11) return "🥇";
-  if(count>=8) return "🥈";
-  if(count>=4) return "🥉";
+  if(count>=35) return "🥇";
+  if(count>=20) return "🥈";
+  if(count>=8) return "🥉";
   return "";
 }
 function checkNewAchievements(){
@@ -1051,13 +1117,22 @@ function renderAchievements(){
   document.getElementById("achProgress").innerHTML = `
     <div class="ach-progress-label">${unlockedKeys.length} / ${ACHIEVEMENTS.length} ${en?"unlocked":"desbloqueados"}</div>
     <div class="ach-progress-track"><div class="ach-progress-fill" style="width:${pct}%"></div></div>`;
-  document.getElementById("achievementsList").innerHTML = ACHIEVEMENTS.map(a=>{
-    const unlocked = unlockedKeys.includes(a.key);
-    return `<div class="ach-item ${unlocked?'ach-unlocked':'ach-locked'}">
-      <span class="ach-icon">${unlocked?a.icon:'🔒'}</span>
-      <div><b>${en?a.en:a.es}</b><span>${en?a.desc_en:a.desc_es}</span></div>
-    </div>`;
-  }).join("");
+
+  let html = "";
+  Object.keys(ACH_CATS).forEach(catKey=>{
+    const items = ACHIEVEMENTS.filter(a=>a.cat===catKey);
+    if(items.length===0) return;
+    const unlockedInCat = items.filter(a=>unlockedKeys.includes(a.key)).length;
+    html += `<div class="ach-section-header">${en?ACH_CATS[catKey].en:ACH_CATS[catKey].es} <span>(${unlockedInCat}/${items.length})</span></div>`;
+    html += items.map(a=>{
+      const unlocked = unlockedKeys.includes(a.key);
+      return `<div class="ach-item ${unlocked?'ach-unlocked':'ach-locked'}">
+        <span class="ach-icon">${unlocked?a.icon:'🔒'}</span>
+        <div><b>${en?a.en:a.es}</b><span>${en?a.desc_en:a.desc_es}</span></div>
+      </div>`;
+    }).join("");
+  });
+  document.getElementById("achievementsList").innerHTML = html;
 }
 
 /* ---- ONBOARDING: introducción para nuevos usuarios ---- */
@@ -1803,8 +1878,10 @@ function submitBusiness(){
   };
   businesses.push(biz);
   saveBusinessDoc(biz);
+  try{ localStorage.setItem("exploranica_used_business_submit","1"); }catch(e){}
   closeOverlay("businessSubmitOverlay");
   showToast(en?"Sent! We'll review it soon ✅":"¡Enviado! Lo vamos a revisar pronto ✅");
+  checkNewAchievements();
 }
 function useMyLocationForBusiness(){
   const en = currentLang==="en";
@@ -2421,14 +2498,22 @@ function initMap(){
   }
 }
 function openMap(){
+  try{ localStorage.setItem("exploranica_used_map","1"); }catch(e){}
   document.getElementById("mapOverlay").classList.add("open");
   setTimeout(()=>{
     initMap();
     if(leafletMapInstance) leafletMapInstance.invalidateSize();
   }, 150);
+  checkNewAchievements();
 }
 
 /* ---- FILTRO DE CATEGORÍAS ---- */
+function trackFiltersUsed(){
+  if(selectedCategories.length>0 || selectedDepts.length>0 || popularitySort!=="none"){
+    try{ localStorage.setItem("exploranica_used_filters","1"); }catch(e){}
+    checkNewAchievements();
+  }
+}
 function openFiltersModal(){
   document.getElementById("filtersModalTitle").textContent = t("🎚️ Filtros Avanzados");
   document.getElementById("filtersCatTitle").textContent = t("🎯 Categorías");
@@ -2634,7 +2719,11 @@ function openBusinessDirections(lat, lng){
 
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2600);}
 function closeOverlay(id){document.getElementById(id).classList.remove("open");}
-function onSearch(){searchQ=document.getElementById("searchInput").value.toLowerCase();render();}
+function onSearch(){
+  searchQ=document.getElementById("searchInput").value.toLowerCase();
+  if(searchQ.trim().length>=2){ try{ localStorage.setItem("exploranica_used_search","1"); }catch(e){} checkNewAchievements(); }
+  render();
+}
 
 function renderInstallBanner(){
   if(installDismissed) return;
