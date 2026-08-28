@@ -221,6 +221,18 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .notif-item b{font-size:13.5px;color:var(--text)}
 .notif-item span:last-child{font-size:12px;color:var(--text3)}
 .ach-item{display:flex;align-items:center;gap:14px;padding:12px 10px;border-radius:12px;margin-bottom:8px;border:1.5px solid var(--border)}
+.ach-progress-label{font-size:13px;color:var(--text2);text-align:center;margin-bottom:8px;font-weight:700}
+.ach-progress-track{width:100%;height:10px;background:var(--border);border-radius:20px;overflow:hidden;margin-bottom:6px}
+.ach-progress-fill{height:100%;background:linear-gradient(90deg,var(--amber),var(--green));border-radius:20px;transition:width 0.6s ease}
+.ach-popup{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--surface);border:2px solid var(--amber);border-radius:16px;padding:14px 18px;display:flex;align-items:center;gap:12px;box-shadow:0 8px 24px rgba(0,0,0,0.25);z-index:10000;opacity:0;animation:achPopupIn 0.5s cubic-bezier(.34,1.56,.64,1) forwards;max-width:90vw;pointer-events:none}
+.ach-popup-icon{font-size:34px;animation:achIconPop 0.6s ease 0.2s both}
+.ach-popup-text{display:flex;flex-direction:column}
+.ach-popup-text b{font-size:13px;color:var(--amber)}
+.ach-popup-text span{font-size:15px;color:var(--text);font-weight:700}
+.ach-popup-hide{animation:achPopupOut 0.4s ease forwards}
+@keyframes achPopupIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes achPopupOut{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(-20px)}}
+@keyframes achIconPop{0%{transform:scale(0)}60%{transform:scale(1.3)}100%{transform:scale(1)}}
 .ach-item.ach-unlocked{background:var(--green-bg);border-color:var(--green)}
 .ach-item.ach-locked{opacity:0.55}
 .ach-icon{font-size:26px;flex-shrink:0;width:36px;text-align:center}
@@ -422,7 +434,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div class="comments-section">
         <p class="rate-label" id="comments-label" style="margin-top:24px">Comentarios de turistas</p>
         <div id="commentLoginPrompt" style="display:none;background:var(--green-bg);border:1px solid var(--green);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:var(--green-dark)">
-          👤 <a href="#" onclick="openAuthModal();return false" style="color:var(--green-dark);font-weight:700;text-decoration:underline">Decinos tu nombre</a> para que aparezca en tu comentario
+          👤 <a href="#" onclick="openAuthModal();return false" id="commentLoginLink" style="color:var(--green-dark);font-weight:700;text-decoration:underline">Decinos tu nombre</a><span id="commentLoginRest"> para que aparezca en tu comentario</span>
         </div>
         <div class="comment-tabs">
           <button class="ctab active" id="ctab-pos" onclick="setCommentType('pos')">👍 Positivo</button>
@@ -968,8 +980,19 @@ const ACHIEVEMENTS = [
   {key:"playero", icon:"🏖️", es:"Amante del mar", en:"Sea lover", desc_es:"Marcá como favorita una playa", desc_en:"Favorite a beach", check:()=>hasFavoriteCategory("playa")},
   {key:"critico", icon:"⭐", es:"Primera opinión", en:"First opinion", desc_es:"Valorá tu primer lugar", desc_en:"Rate your first place", check:()=>getMyRatingsCount()>=1},
   {key:"voz_activa", icon:"💬", es:"Voz activa", en:"Active voice", desc_es:"Dejá 3 comentarios", desc_en:"Leave 3 comments", check:()=>getMyCommentsCount()>=3},
-  {key:"planificador", icon:"🗓️", es:"Planificador", en:"Planner", desc_es:"Agregá 3 lugares a tu itinerario", desc_en:"Add 3 places to your itinerary", check:()=>itinerary.length>=3}
+  {key:"planificador", icon:"🗓️", es:"Planificador", en:"Planner", desc_es:"Agregá 3 lugares a tu itinerario", desc_en:"Add 3 places to your itinerary", check:()=>itinerary.length>=3},
+  {key:"bilingue", icon:"🌐", es:"Bilingüe", en:"Bilingual", desc_es:"Probá la app en inglés", desc_en:"Try the app in English", check:()=>{try{return localStorage.getItem("exploranica_used_english")==="1";}catch(e){return false;}}},
+  {key:"nocturno", icon:"🌙", es:"Ave nocturna", en:"Night owl", desc_es:"Activá el modo oscuro", desc_en:"Turn on dark mode", check:()=>{try{return localStorage.getItem("exploranica_used_dark")==="1";}catch(e){return false;}}},
+  {key:"azar", icon:"🎲", es:"Aventura al azar", en:"Random adventure", desc_es:"Usá el botón Sorpréndeme", desc_en:"Use the Surprise Me button", check:()=>{try{return localStorage.getItem("exploranica_used_surprise")==="1";}catch(e){return false;}}},
+  {key:"embajador", icon:"📤", es:"Embajador", en:"Ambassador", desc_es:"Compartí un lugar con alguien", desc_en:"Share a place with someone", check:()=>{try{return localStorage.getItem("exploranica_used_share")==="1";}catch(e){return false;}}}
 ];
+function getAchievementLevel(){
+  const count = ACHIEVEMENTS.filter(a=>a.check()).length;
+  if(count>=11) return "🥇";
+  if(count>=8) return "🥈";
+  if(count>=4) return "🥉";
+  return "";
+}
 function checkNewAchievements(){
   let seen = [];
   try{ seen = JSON.parse(localStorage.getItem("exploranica_achievements_seen")||"[]"); }catch(e){}
@@ -977,10 +1000,20 @@ function checkNewAchievements(){
   const newOnes = unlockedNow.filter(k=>!seen.includes(k));
   if(newOnes.length>0){
     const achievement = ACHIEVEMENTS.find(a=>a.key===newOnes[0]);
-    const en = currentLang==="en";
-    showToast(`🏅 ${en?"New achievement":"Nuevo logro"}: ${en?achievement.en:achievement.es}!`);
+    showAchievementPopup(achievement);
     try{ localStorage.setItem("exploranica_achievements_seen", JSON.stringify([...new Set([...seen, ...newOnes])])); }catch(e){}
   }
+}
+function showAchievementPopup(achievement){
+  const en = currentLang==="en";
+  const existing = document.querySelector(".ach-popup");
+  if(existing) existing.remove();
+  const popup = document.createElement("div");
+  popup.className = "ach-popup";
+  popup.innerHTML = `<div class="ach-popup-icon">${achievement.icon}</div><div class="ach-popup-text"><b>${en?"Achievement unlocked!":"¡Logro desbloqueado!"}</b><span>${en?achievement.en:achievement.es}</span></div>`;
+  document.body.appendChild(popup);
+  launchConfetti();
+  setTimeout(()=>{ popup.classList.add("ach-popup-hide"); setTimeout(()=>popup.remove(), 400); }, 2600);
 }
 function openAchievements(){
   renderAchievements();
@@ -989,8 +1022,11 @@ function openAchievements(){
 function renderAchievements(){
   const en = currentLang==="en";
   const unlockedKeys = ACHIEVEMENTS.filter(a=>a.check()).map(a=>a.key);
+  const pct = Math.round((unlockedKeys.length/ACHIEVEMENTS.length)*100);
   document.getElementById("achTitle").textContent = en?"🏅 My Achievements":"🏅 Mis Logros";
-  document.getElementById("achProgress").textContent = `${unlockedKeys.length} / ${ACHIEVEMENTS.length} ${en?"unlocked":"desbloqueados"}`;
+  document.getElementById("achProgress").innerHTML = `
+    <div class="ach-progress-label">${unlockedKeys.length} / ${ACHIEVEMENTS.length} ${en?"unlocked":"desbloqueados"}</div>
+    <div class="ach-progress-track"><div class="ach-progress-fill" style="width:${pct}%"></div></div>`;
   document.getElementById("achievementsList").innerHTML = ACHIEVEMENTS.map(a=>{
     const unlocked = unlockedKeys.includes(a.key);
     return `<div class="ach-item ${unlocked?'ach-unlocked':'ach-locked'}">
@@ -1055,11 +1091,13 @@ function tEventDesc(e){ return (currentLang==="en" && EVENT_TRANSLATIONS_EN[e.id
 function toggleLanguage(){
   currentLang = currentLang==="es" ? "en" : "es";
   try{ localStorage.setItem("exploranica_lang", currentLang); }catch(e){}
+  if(currentLang==="en"){ try{ localStorage.setItem("exploranica_used_english","1"); }catch(e){} }
   const si = document.getElementById("searchInput");
   if(si) si.placeholder = t("Buscar lugar o departamento...");
   applyModalTranslations();
   updateItinBtn();
   render();
+  checkNewAchievements();
 }
 function loadLanguage(){
   try{
@@ -1279,7 +1317,7 @@ function doUserLogout(){
   currentUser = null;
   try{ localStorage.removeItem(NAME_KEY); localStorage.removeItem(VERIFIED_EMAIL_KEY); }catch(e){}
   closeOverlay("userMenuOverlay");
-  showToast("Listo, ya no estás identificado");
+  showToast(currentLang==="en"?"Done, you're no longer signed in":"Listo, ya no estás identificado");
   render();
 }
 
@@ -1289,7 +1327,7 @@ function loadData(){
     places = JSON.parse(JSON.stringify(DEFAULT_PLACES));
     places.forEach(p=>{ if(!p.imgs) p.imgs=[]; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
     fsReady = true;
-    showToast("⚠️ No se pudo conectar, modo sin conexión");
+    showToast(currentLang==="en"?"⚠️ Couldn't connect, offline mode":"⚠️ No se pudo conectar, modo sin conexión");
     render();
     return;
   }
@@ -1301,7 +1339,7 @@ function loadData(){
       places = JSON.parse(JSON.stringify(DEFAULT_PLACES));
       places.forEach(p=>{ if(!p.imgs) p.imgs=[]; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
       fsReady = true;
-      showToast("⚠️ Conexión lenta, mostrando datos locales por ahora");
+      showToast(currentLang==="en"?"⚠️ Slow connection, showing local data for now":"⚠️ Conexión lenta, mostrando datos locales por ahora");
       offlineWarningShown = true;
       render();
     }
@@ -1310,7 +1348,7 @@ function loadData(){
   // Listener en tiempo real para lugares (un documento por lugar, así cada uno tiene su propio megabyte disponible)
   placesCollection.onSnapshot(snap=>{
     clearTimeout(safetyTimer);
-    if(offlineWarningShown){ showToast("✅ Conexión recuperada"); offlineWarningShown=false; }
+    if(offlineWarningShown){ showToast(currentLang==="en"?"✅ Connection restored":"✅ Conexión recuperada"); offlineWarningShown=false; }
     if(!snap.empty){
       places = snap.docs.map(d=>d.data());
       places.forEach(p=>{ if(!p.imgs) p.imgs = p.img ? [p.img] : []; if(!p.address) p.address=""; if(!p.emergency) p.emergency=""; if(!p.info) p.info=""; });
@@ -1345,7 +1383,7 @@ function loadData(){
     clearTimeout(safetyTimer);
     console.error("Error de Firestore:", err);
     if(!offlineWarningShown){
-      showToast("⚠️ Problema de conexión, reintentando...");
+      showToast(currentLang==="en"?"⚠️ Connection issue, retrying...":"⚠️ Problema de conexión, reintentando...");
       offlineWarningShown = true;
     }
     if(!fsReady){
@@ -1408,21 +1446,23 @@ function deletePlaceDoc(id){
   placesCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
 }
 function saveBusinessDoc(biz, silent){
-  if(!businessesCollection){ if(!silent) showToast("⚠️ Guardado localmente (sin conexión)"); return; }
-  businessesCollection.doc(String(biz.id)).set(biz).catch(()=>{ if(!silent) showToast("Error al guardar"); });
+  const en = currentLang==="en";
+  if(!businessesCollection){ if(!silent) showToast(en?"⚠️ Saved locally (offline)":"⚠️ Guardado localmente (sin conexión)"); return; }
+  businessesCollection.doc(String(biz.id)).set(biz).catch(()=>{ if(!silent) showToast(en?"Error saving":"Error al guardar"); });
 }
 function deleteBusinessDoc(id){
   if(!businessesCollection) return;
   businessesCollection.doc(String(id)).delete().catch(()=>showToast("Error al eliminar"));
 }
 function saveVisitorPhotoDoc(photo, silent){
+  const en = currentLang==="en";
   const sizeKB = new Blob([JSON.stringify(photo)]).size / 1024;
   if(sizeKB > 950){
-    if(!silent) showToast("⚠️ Esa foto es demasiado pesada, probá con otra");
+    if(!silent) showToast(en?"⚠️ That photo is too large, try another one":"⚠️ Esa foto es demasiado pesada, probá con otra");
     return;
   }
-  if(!visitorPhotosCollection){ if(!silent) showToast("⚠️ Guardado localmente (sin conexión)"); return; }
-  visitorPhotosCollection.doc(String(photo.id)).set(photo).catch(()=>{ if(!silent) showToast("Error al guardar"); });
+  if(!visitorPhotosCollection){ if(!silent) showToast(en?"⚠️ Saved locally (offline)":"⚠️ Guardado localmente (sin conexión)"); return; }
+  visitorPhotosCollection.doc(String(photo.id)).set(photo).catch(()=>{ if(!silent) showToast(en?"Error saving":"Error al guardar"); });
 }
 function deleteVisitorPhotoDoc(id){
   if(!visitorPhotosCollection) return;
@@ -1688,15 +1728,16 @@ function submitBusiness(){
   showToast(en?"Sent! We'll review it soon ✅":"¡Enviado! Lo vamos a revisar pronto ✅");
 }
 function useMyLocationForBusiness(){
-  if(!navigator.geolocation){ showToast("Tu navegador no soporta geolocalización"); return; }
-  showToast("Obteniendo tu ubicación...");
+  const en = currentLang==="en";
+  if(!navigator.geolocation){ showToast(en?"Your browser doesn't support geolocation":"Tu navegador no soporta geolocalización"); return; }
+  showToast(en?"Getting your location...":"Obteniendo tu ubicación...");
   navigator.geolocation.getCurrentPosition(
     pos=>{
       document.getElementById("biz-lat").value = pos.coords.latitude.toFixed(6);
       document.getElementById("biz-lng").value = pos.coords.longitude.toFixed(6);
-      showToast("Ubicación obtenida ✅");
+      showToast(en?"Location obtained ✅":"Ubicación obtenida ✅");
     },
-    err=>{ showToast("No se pudo obtener tu ubicación"); },
+    err=>{ showToast(en?"Couldn't get your location":"No se pudo obtener tu ubicación"); },
     {timeout:10000}
   );
 }
@@ -1903,7 +1944,9 @@ function surpriseMe(){
   const pool=getFilteredPlaces();
   if(pool.length===0){ showToast("No hay lugares con estos filtros"); return; }
   const pick=pool[Math.floor(Math.random()*pool.length)];
+  try{ localStorage.setItem("exploranica_used_surprise","1"); }catch(e){}
   openView(pick.id);
+  checkNewAchievements();
 }
 
 /* ---- TEMA CLARO/OSCURO MANUAL ---- */
@@ -1918,8 +1961,10 @@ function applyTheme(theme){ document.documentElement.setAttribute("data-theme", 
 function toggleTheme(){
   const next = getEffectiveTheme()==="dark" ? "light" : "dark";
   try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
+  if(next==="dark"){ try{ localStorage.setItem("exploranica_used_dark","1"); }catch(e){} }
   applyTheme(next);
   render();
+  checkNewAchievements();
 }
 
 /* ---- RESALTADO DE BÚSQUEDA ---- */
@@ -2411,10 +2456,11 @@ function sharePlace(){
   const p = places.find(x=>x.id===viewingId);
   if(!p) return;
   const text = `${p.name} - ${p.dept}\n${p.desc}${p.address ? '\nUbicación: '+p.address : ''}`;
+  const markShared = ()=>{ try{ localStorage.setItem("exploranica_used_share","1"); }catch(e){} checkNewAchievements(); };
   if(navigator.share){
-    navigator.share({title:p.name, text}).catch(()=>{});
+    navigator.share({title:p.name, text}).then(markShared).catch(()=>{});
   } else if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(text).then(()=>showToast("Copiado al portapapeles 📋")).catch(()=>showToast("No se pudo copiar"));
+    navigator.clipboard.writeText(text).then(()=>{showToast("Copiado al portapapeles 📋");markShared();}).catch(()=>showToast("No se pudo copiar"));
   } else {
     showToast("Tu navegador no permite compartir");
   }
@@ -2430,7 +2476,8 @@ function openSOS(){
   document.getElementById("sosCloseBtn").textContent = en?"Close":"Cerrar";
   const specificBox = document.getElementById("sosPlaceSpecific");
   if(p && p.emergency){
-    specificBox.innerHTML = `<p style="font-size:12px;color:var(--text3);margin:14px 0 6px">${en?"Specific info for":"Info específica de"} ${tPlaceName(p)}:</p><p style="font-size:13px;color:var(--text2)">${p.emergency}</p>`;
+    const emergencyText = (en && p.emergency==="118 (Policía) / 115 (Bomberos)") ? "118 (Police) / 115 (Fire Dept.)" : p.emergency;
+    specificBox.innerHTML = `<p style="font-size:12px;color:var(--text3);margin:14px 0 6px">${en?"Specific info for":"Info específica de"} ${tPlaceName(p)}:</p><p style="font-size:13px;color:var(--text2)">${emergencyText}</p>`;
   } else {
     specificBox.innerHTML = "";
   }
@@ -2514,8 +2561,9 @@ function render(){
     : isAuditor
     ?`<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openAuditorMenu()">🔍 Auditor</button>`
     :`<button class="btn-admin" onclick="openLogin()">🔐 Admin</button>`;
+  const achLevel = currentUser ? getAchievementLevel() : "";
   const userHtml = currentUser
-    ?`<button class="btn-admin" onclick="openUserMenu()">👤 ${currentUser.name}</button>`
+    ?`<button class="btn-admin" onclick="openUserMenu()">👤 ${currentUser.name}${achLevel?` ${achLevel}`:''}</button>`
     :`<button class="btn-admin" onclick="openAuthModal()">👤 Identificarme</button>`;
   const themeHtml = `<button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema claro/oscuro">${getEffectiveTheme()==="dark"?"☀️":"🌙"}</button>`;
   const itinBtnHtml = `<button class="btn-theme" style="position:relative" onclick="openItinerary()" title="Mi itinerario" aria-label="Mi itinerario">🗺️${itinerary.length?`<span class="itin-badge">${itinerary.length}</span>`:''}</button>`;
@@ -2604,6 +2652,11 @@ function applyModalTranslations(){
   if(commentsLabel) commentsLabel.textContent = t("Comentarios de turistas");
   const commentBtn = document.getElementById("comment-btn");
   if(commentBtn) commentBtn.textContent = t("Publicar comentario");
+  const en = currentLang==="en";
+  const clLink = document.getElementById("commentLoginLink");
+  if(clLink) clLink.textContent = en?"Sign in":"Decinos tu nombre";
+  const clRest = document.getElementById("commentLoginRest");
+  if(clRest) clRest.textContent = en?" so it shows up on your comment":" para que aparezca en tu comentario";
 }
 function openView(id){
   const p=places.find(x=>x.id===id);
@@ -2654,12 +2707,16 @@ function renderRules(p){
   box.innerHTML=`<div class="rules-box"><h4>${title}</h4><ul class="rules-list">${rules.map(r=>`<li>${r}</li>`).join("")}</ul></div>`;
 }
 function renderInfobox(p){
+  const en = currentLang==="en";
   const rows=[];
   if(p.address){
-    rows.push(`<div class="irow"><span class="ic">📍</span><span><b>Dirección:</b> ${p.address}</span></div>`);
+    rows.push(`<div class="irow"><span class="ic">📍</span><span><b>${en?"Address":"Dirección"}:</b> ${p.address}</span></div>`);
     rows.push(`<button class="btn-directions" onclick="openDirections()">${t("🧭 Cómo llegar")}</button>`);
   }
-  if(p.emergency) rows.push(`<div class="irow iemergency"><span class="ic">🚨</span><span><b>Emergencias:</b> ${p.emergency}</span></div>`);
+  if(p.emergency){
+    const emergencyText = (en && p.emergency==="118 (Policía) / 115 (Bomberos)") ? "118 (Police) / 115 (Fire Dept.)" : p.emergency;
+    rows.push(`<div class="irow iemergency"><span class="ic">🚨</span><span><b>${en?"Emergency":"Emergencias"}:</b> ${emergencyText}</span></div>`);
+  }
   if(p.info) rows.push(`<div class="irow"><span class="ic">ℹ️</span><span>${p.info}</span></div>`);
   document.getElementById("vm-infobox").innerHTML = rows.length ? rows.join("") : "";
   document.getElementById("vm-infobox").style.display = rows.length ? "flex" : "none";
@@ -2673,10 +2730,11 @@ function setCommentType(type){
 }
 
 function submitComment(){
+  const en = currentLang==="en";
   const text=document.getElementById("newComment").value.trim();
-  if(!text){showToast("Escribí un comentario primero");return;}
+  if(!text){showToast(en?"Write a comment first":"Escribí un comentario primero");return;}
   if(!currentUser){
-    showToast("Decinos tu nombre para comentar");
+    showToast(en?"Sign in to comment":"Decinos tu nombre para comentar");
     openAuthModal();
     return;
   }
@@ -2703,33 +2761,34 @@ function submitComment(){
 // detectar patrones de spam, que es donde sí puede ser "inteligente" de verdad.
 const MODERATION_BLOCKLIST = [];
 function moderateText(text){
+  const en = currentLang==="en";
   const t = text.trim();
   const lower = normalizeText(t);
   const issues = [];
 
   if(t.length < 3){
-    issues.push("El comentario es demasiado corto");
+    issues.push(en?"The comment is too short":"El comentario es demasiado corto");
   }
   if(t.length > 500){
-    issues.push("El comentario es demasiado largo (máx. 500 caracteres)");
+    issues.push(en?"The comment is too long (max. 500 characters)":"El comentario es demasiado largo (máx. 500 caracteres)");
   }
 
   const letters = t.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ]/g,"");
   if(letters.length > 12){
     const upperCount = letters.replace(/[^A-ZÁÉÍÓÚÑ]/g,"").length;
-    if((upperCount/letters.length) > 0.7) issues.push("Escribí sin tantas mayúsculas, por favor");
+    if((upperCount/letters.length) > 0.7) issues.push(en?"Please don't write with so many capital letters":"Escribí sin tantas mayúsculas, por favor");
   }
 
-  if(/(.)\1{5,}/.test(t)) issues.push("Parece spam (caracteres repetidos)");
+  if(/(.)\1{5,}/.test(t)) issues.push(en?"Looks like spam (repeated characters)":"Parece spam (caracteres repetidos)");
 
   const urlCount = (t.match(/https?:\/\/|www\./gi)||[]).length;
-  if(urlCount > 1) issues.push("No se permiten varios enlaces en un comentario");
+  if(urlCount > 1) issues.push(en?"Multiple links aren't allowed in a comment":"No se permiten varios enlaces en un comentario");
 
   const exclaimCount = (t.match(/[!¡]/g)||[]).length;
-  if(exclaimCount > 6) issues.push("Demasiados signos de exclamación");
+  if(exclaimCount > 6) issues.push(en?"Too many exclamation marks":"Demasiados signos de exclamación");
 
   const foundBadWord = MODERATION_BLOCKLIST.find(w => w && lower.includes(normalizeText(w)));
-  if(foundBadWord) issues.push("El comentario contiene lenguaje no permitido");
+  if(foundBadWord) issues.push(en?"The comment contains language that isn't allowed":"El comentario contiene lenguaje no permitido");
 
   return { blocked: issues.length>0, issues };
 }
