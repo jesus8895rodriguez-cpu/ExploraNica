@@ -248,10 +248,9 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .itin-hours{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--text2)}
 .itin-hours input{width:44px;padding:5px;border:1px solid var(--border);border-radius:6px;text-align:center;font-size:13px;background:var(--bg);color:var(--text)}
 .itin-remove{background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:4px 6px;line-height:1}
-.itin-connector{text-align:center;font-size:12px;color:var(--text3);padding:6px 0;font-weight:600}
-.itin-connector-unknown{font-style:italic;opacity:0.7}
 .itin-connector{text-align:center;font-size:12px;font-weight:700;color:var(--green-dark);padding:5px 0;margin:-2px 0 4px}
 .itin-connector-unknown{color:var(--text3);font-weight:500}
+.itin-modes{display:flex;justify-content:center;gap:12px;font-size:11.5px;margin-top:2px;font-weight:600}
 .rules-box{background:var(--green-bg);border:1px solid var(--green);border-radius:12px;padding:14px;margin-bottom:16px}
 .rules-box h4{font-size:13px;color:var(--green-dark);margin:0 0 8px;display:flex;align-items:center;gap:6px}
 .rules-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px}
@@ -648,6 +647,15 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <a href="tel:115" class="sos-btn"><span>🚒</span><span id="sosBomberos">Bomberos — 115</span></a>
       <a href="tel:102" class="sos-btn"><span>🚑</span><span id="sosAmbulancia">Ambulancia — 102</span></a>
       <div id="sosPlaceSpecific"></div>
+      <div id="sosLocationSection" style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+        <div id="sosContactSetup" style="display:none">
+          <label id="sosContactLabel" style="font-size:12px;color:var(--text3);display:block;margin-bottom:6px;text-align:left">Número de un contacto de confianza (para emergencias):</label>
+          <input type="tel" id="sos-contact-input" placeholder="Ej: 88889999" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--bg);color:var(--text);box-sizing:border-box"/>
+        </div>
+        <button class="sos-btn" style="background:#25D366;border-color:#25D366;color:#fff;width:100%;justify-content:center;cursor:pointer" onclick="sendEmergencyLocation()" id="sosSendLocationBtn">📍 Enviar mi ubicación</button>
+        <p id="sosLocationNote" style="font-size:11px;color:var(--text3);margin-top:6px;text-align:center">Abre WhatsApp con tu ubicación lista — vos tenés que tocar enviar</p>
+        <p style="text-align:center;margin-top:4px"><a href="#" onclick="changeEmergencyContact();return false" id="sosChangeContactLink" style="font-size:11px;color:var(--green-dark);text-decoration:underline">Cambiar contacto</a></p>
+      </div>
       <button class="btn-cancel" style="width:100%;margin-top:14px" onclick="closeOverlay('sosOverlay')" id="sosCloseBtn">Cerrar</button>
     </div>
   </div>
@@ -855,6 +863,22 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
   </div>
 </div>
 
+<!-- ONBOARDING MODAL (introducción para nuevos usuarios) -->
+<div class="overlay edit-overlay" id="onboardingOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body" style="text-align:center">
+      <div id="onboardingIcon" style="font-size:56px;margin-bottom:14px">🧭</div>
+      <h2 id="onboardingTitle" style="margin-bottom:10px">¡Bienvenido a ExploraNica!</h2>
+      <p id="onboardingText" style="font-size:14.5px;color:var(--text2);line-height:1.5;min-height:70px">Descubrí, valorá y planificá tus visitas a los mejores destinos turísticos de Nicaragua.</p>
+      <div id="onboardingDots" style="display:flex;justify-content:center;gap:6px;margin:18px 0"></div>
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="skipOnboarding()" id="onboardingSkipBtn">Omitir</button>
+        <button class="btn-save" onclick="nextOnboardingStep()" id="onboardingNextBtn">Siguiente</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 const ADMIN_PASS = "explora2025";
 const AUDITOR_PASS = "auditor2025";
@@ -1034,6 +1058,61 @@ function renderAchievements(){
       <div><b>${en?a.en:a.es}</b><span>${en?a.desc_en:a.desc_es}</span></div>
     </div>`;
   }).join("");
+}
+
+/* ---- ONBOARDING: introducción para nuevos usuarios ---- */
+const ONBOARDING_STEPS = [
+  {icon:"🧭", es_t:"¡Bienvenido a ExploraNica!", en_t:"Welcome to ExploraNica!",
+   es_d:"Descubrí, valorá y planificá tus visitas a los mejores destinos turísticos de Nicaragua.",
+   en_d:"Discover, rate and plan your visits to the best tourist destinations in Nicaragua."},
+  {icon:"🔍", es_t:"Buscá y filtrá", en_t:"Search and filter",
+   es_d:"Usá la barra de búsqueda o tocá \"🎚️ Filtros Avanzados\" para encontrar justo lo que buscás: playas, volcanes, aventura, y más.",
+   en_d:"Use the search bar or tap \"🎚️ Advanced Filters\" to find exactly what you're looking for: beaches, volcanoes, adventure, and more."},
+  {icon:"❤️", es_t:"Guardá tus favoritos y armá tu viaje", en_t:"Save favorites and plan your trip",
+   es_d:"Tocá el corazón para guardar lugares, y agregalos a tu itinerario para ver cuánto tiempo te lleva visitarlos todos.",
+   en_d:"Tap the heart to save places, and add them to your itinerary to see how long it takes to visit them all."},
+  {icon:"🌍", es_t:"Mapa y emergencias", en_t:"Map and emergencies",
+   es_d:"Mirá todo en el mapa, y dentro de cada lugar tenés un botón 🆘 con los números de emergencia de Nicaragua a un toque.",
+   en_d:"See everything on the map, and inside each place there's a 🆘 button with Nicaragua's emergency numbers one tap away."},
+  {icon:"👤", es_t:"Sumate a la comunidad", en_t:"Join the community",
+   es_d:"Identificate con tu correo para comentar, valorar, y desbloquear logros mientras explorás.",
+   en_d:"Sign in with your email to comment, rate, and unlock achievements as you explore."},
+];
+let onboardingStep = 0;
+function maybeShowOnboarding(){
+  let seen = false;
+  try{ seen = localStorage.getItem("exploranica_onboarding_seen")==="1"; }catch(e){}
+  if(!seen){
+    onboardingStep = 0;
+    renderOnboardingStep();
+    document.getElementById("onboardingOverlay").classList.add("open");
+  }
+}
+function renderOnboardingStep(){
+  const en = currentLang==="en";
+  const step = ONBOARDING_STEPS[onboardingStep];
+  document.getElementById("onboardingIcon").textContent = step.icon;
+  document.getElementById("onboardingTitle").textContent = en?step.en_t:step.es_t;
+  document.getElementById("onboardingText").textContent = en?step.en_d:step.es_d;
+  document.getElementById("onboardingDots").innerHTML = ONBOARDING_STEPS.map((_,i)=>
+    `<span style="width:8px;height:8px;border-radius:50%;background:${i===onboardingStep?'var(--green)':'var(--border)'};display:inline-block"></span>`
+  ).join("");
+  const isLast = onboardingStep === ONBOARDING_STEPS.length-1;
+  document.getElementById("onboardingNextBtn").textContent = isLast ? (en?"Get started":"Empezar") : (en?"Next":"Siguiente");
+  document.getElementById("onboardingSkipBtn").textContent = en?"Skip":"Omitir";
+  document.getElementById("onboardingSkipBtn").style.visibility = isLast ? "hidden" : "visible";
+}
+function nextOnboardingStep(){
+  if(onboardingStep < ONBOARDING_STEPS.length-1){
+    onboardingStep++;
+    renderOnboardingStep();
+  } else {
+    skipOnboarding();
+  }
+}
+function skipOnboarding(){
+  try{ localStorage.setItem("exploranica_onboarding_seen","1"); }catch(e){}
+  closeOverlay("onboardingOverlay");
 }
 
 const UI_STRINGS_EN = {
@@ -2079,11 +2158,19 @@ function haversineDistance(lat1,lng1,lat2,lng2){
   const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
   return R*c;
 }
-function estimateTravel(lat1,lng1,lat2,lng2){
+function estimateTravelModes(lat1,lng1,lat2,lng2){
   const straight = haversineDistance(lat1,lng1,lat2,lng2);
   const roadKm = straight * 1.3; // factor de ruta real vs línea recta
-  const hours = roadKm / 50; // velocidad promedio estimada en carretera nicaragüense
-  return { km: roadKm, hours };
+  const car = { km: roadKm, hours: roadKm / 50 };
+  const moto = { km: roadKm, hours: roadKm / 48 };
+  let plane = null;
+  if(straight > 120){ // solo tiene sentido sugerir avión en distancias largas
+    plane = { km: straight, hours: (straight / 350) + 1.5 }; // + tiempo fijo de aeropuerto
+  }
+  return { car, moto, plane };
+}
+function estimateTravel(lat1,lng1,lat2,lng2){
+  return estimateTravelModes(lat1,lng1,lat2,lng2).car;
 }
 function formatTravelTime(hours, en){
   const totalMin = Math.round(hours*60);
@@ -2130,8 +2217,10 @@ function renderItineraryModal(){
     if(idx < itinerary.length-1){
       const next = places.find(x=>x.id===itinerary[idx+1].placeId);
       if(next && typeof p.lat==="number" && typeof p.lng==="number" && typeof next.lat==="number" && typeof next.lng==="number"){
-        const t2 = estimateTravel(p.lat,p.lng,next.lat,next.lng);
-        connector = `<div class="itin-connector">🚗 ~${Math.round(t2.km)} km · ${formatTravelTime(t2.hours,en)}</div>`;
+        const modes = estimateTravelModes(p.lat,p.lng,next.lat,next.lng);
+        let modesHtml = `<span>🚗 ${formatTravelTime(modes.car.hours,en)}</span><span>🏍️ ${formatTravelTime(modes.moto.hours,en)}</span>`;
+        if(modes.plane) modesHtml += `<span>✈️ ${formatTravelTime(modes.plane.hours,en)}</span>`;
+        connector = `<div class="itin-connector"><div>~${Math.round(modes.car.km)} km</div><div class="itin-modes">${modesHtml}</div></div>`;
       } else {
         connector = `<div class="itin-connector itin-connector-unknown">🚗 ${en?"Distance not available":"Distancia no disponible"}</div>`;
       }
@@ -2151,7 +2240,7 @@ function renderItineraryModal(){
   const grandTotal = Math.round((totalH+travelH)*10)/10;
   summary.innerHTML = `<div style="text-align:center;padding:14px;background:var(--green-bg);border-radius:12px;margin-top:6px">
     <div><b style="font-size:20px;color:var(--green-dark)">${itinerary.length}</b> lugar${itinerary.length!==1?'es':''} · <b style="font-size:20px;color:var(--green-dark)">${totalH}</b> hora${totalH!==1?'s':''} en los lugares</div>
-    ${travelH>0?`<div style="font-size:12.5px;color:var(--text2);margin-top:6px">🚗 ${en?"~"+Math.round(travelH*10)/10+"h traveling between stops":"~"+Math.round(travelH*10)/10+"h viajando entre paradas"}</div><div style="font-size:13px;color:var(--green-dark);font-weight:700;margin-top:4px">${en?"Total trip":"Total del viaje"}: ~${grandTotal}h</div>`:''}
+    ${travelH>0?`<div style="font-size:12.5px;color:var(--text2);margin-top:6px">🚗 ${en?"~"+Math.round(travelH*10)/10+"h traveling between stops (by car)":"~"+Math.round(travelH*10)/10+"h viajando entre paradas (en carro)"}</div><div style="font-size:13px;color:var(--green-dark);font-weight:700;margin-top:4px">${en?"Total trip":"Total del viaje"}: ~${grandTotal}h</div>`:''}
   </div>`;
 }
 
@@ -2474,6 +2563,14 @@ function openSOS(){
   document.getElementById("sosBomberos").textContent = en?"Fire department — 115":"Bomberos — 115";
   document.getElementById("sosAmbulancia").textContent = en?"Ambulance — 102":"Ambulancia — 102";
   document.getElementById("sosCloseBtn").textContent = en?"Close":"Cerrar";
+  const contact = getEmergencyContact();
+  document.getElementById("sosContactSetup").style.display = contact ? "none" : "block";
+  document.getElementById("sosContactLabel").textContent = en?"Trusted contact's number (for emergencies):":"Número de un contacto de confianza (para emergencias):";
+  document.getElementById("sos-contact-input").value = "";
+  document.getElementById("sosSendLocationBtn").textContent = en?"📍 Send my location":"📍 Enviar mi ubicación";
+  document.getElementById("sosLocationNote").textContent = en?"Opens WhatsApp with your location ready — you still tap send":"Abre WhatsApp con tu ubicación lista — vos tenés que tocar enviar";
+  document.getElementById("sosChangeContactLink").textContent = en?"Change contact":"Cambiar contacto";
+  document.getElementById("sosChangeContactLink").parentElement.style.display = contact ? "block" : "none";
   const specificBox = document.getElementById("sosPlaceSpecific");
   if(p && p.emergency){
     const emergencyText = (en && p.emergency==="118 (Policía) / 115 (Bomberos)") ? "118 (Police) / 115 (Fire Dept.)" : p.emergency;
@@ -2482,6 +2579,47 @@ function openSOS(){
     specificBox.innerHTML = "";
   }
   document.getElementById("sosOverlay").classList.add("open");
+}
+function getEmergencyContact(){
+  try{ return localStorage.getItem("exploranica_emergency_contact") || ""; }catch(e){ return ""; }
+}
+function changeEmergencyContact(){
+  try{ localStorage.removeItem("exploranica_emergency_contact"); }catch(e){}
+  document.getElementById("sosContactSetup").style.display = "block";
+  document.getElementById("sosChangeContactLink").parentElement.style.display = "none";
+}
+function sendEmergencyLocation(){
+  const en = currentLang==="en";
+  let contact = getEmergencyContact();
+  if(!contact){
+    const input = document.getElementById("sos-contact-input").value.trim();
+    if(!input || input.replace(/[^0-9]/g,"").length<8){
+      showToast(en?"Enter a valid phone number first":"Escribí un teléfono válido primero");
+      return;
+    }
+    contact = input;
+    try{ localStorage.setItem("exploranica_emergency_contact", contact); }catch(e){}
+  }
+  if(!navigator.geolocation){
+    showToast(en?"Your browser doesn't support geolocation":"Tu navegador no soporta geolocalización");
+    return;
+  }
+  showToast(en?"Getting your location...":"Obteniendo tu ubicación...");
+  navigator.geolocation.getCurrentPosition(
+    pos=>{
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      const mapsLink = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      const msg = en
+        ? `🚨 EMERGENCY. This is my current location: ${mapsLink}`
+        : `🚨 EMERGENCIA. Esta es mi ubicación actual: ${mapsLink}`;
+      const waNumber = formatWhatsAppNumber(contact);
+      const waUrl = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, "_blank", "noopener");
+    },
+    err=>{ showToast(en?"Couldn't get your location":"No se pudo obtener tu ubicación"); },
+    {timeout:10000, enableHighAccuracy:true}
+  );
 }
 function openDirections(){
   const p = places.find(x=>x.id===viewingId);
@@ -3081,6 +3219,7 @@ loadData();
 render();
 renderInstallBanner();
 setTimeout(()=>{const s=document.getElementById("splash");s.style.opacity="0";setTimeout(()=>s.remove(),500);},1800);
+setTimeout(maybeShowOnboarding, 2000);
 </script>
 </body>
 </html>
