@@ -14,9 +14,6 @@ Versión desplegada:
 ## Clonar el repositorio
 git clone **https://github.com/jesus8895rodriguez-cpu/ExploraNica.git/**
 
-## link de descarga en netlify
-**https://descarga-explora-nica.netlify.app**
-
 ## Tecnologías utilizadas
 
 El proyecto está construido con tecnologías web modernas y servicios en la nube:  
