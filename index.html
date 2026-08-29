@@ -852,12 +852,29 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <div style="text-align:center;font-size:44px;margin-bottom:8px">👤</div>
       <h2 style="text-align:center;margin-bottom:2px" id="umName"></h2>
       <p style="text-align:center;font-size:13px;color:var(--text3);margin-bottom:14px" id="umEmail"></p>
-      <button class="menu-item-btn" onclick="closeOverlay('userMenuOverlay');openAchievements()" id="umAchSummary" style="text-align:center;font-weight:700">🏅 Logros</button>
-      <button class="menu-item-btn" onclick="shareAchievementLevel()" id="umShareAch" style="text-align:center">📤 Compartir mi nivel</button>
-      <div class="edit-actions">
-        <button class="btn-cancel" onclick="closeOverlay('userMenuOverlay')">Cerrar</button>
-        <button class="btn-save" style="background:var(--red)" onclick="doUserLogout()">Cerrar sesión</button>
+
+      <div id="umNotIdentified" style="display:none">
+        <button class="menu-item-btn" onclick="closeOverlay('userMenuOverlay');openAuthModal()" style="text-align:center;font-weight:700" id="umIdentifyBtn">✉️ Identificarme con mi correo</button>
       </div>
+
+      <div id="umIdentifiedActions" style="display:none">
+        <button class="menu-item-btn" onclick="closeOverlay('userMenuOverlay');openAchievements()" id="umAchSummary" style="text-align:center;font-weight:700">🏅 Logros</button>
+        <button class="menu-item-btn" onclick="shareAchievementLevel()" id="umShareAch" style="text-align:center">📤 Compartir mi nivel</button>
+        <button class="btn-cancel" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red)" onclick="doUserLogout()" id="umLogoutBtn">Cerrar sesión de visitante</button>
+      </div>
+
+      <div style="border-top:1px solid var(--border);margin:18px 0 14px"></div>
+      <h3 id="umAdminSectionTitle" style="font-size:12px;color:var(--text3);text-align:center;margin-bottom:10px;font-weight:700;letter-spacing:0.5px">ACCESO ADMINISTRATIVO</h3>
+
+      <div id="umAdminNotLoggedIn" style="display:none">
+        <button class="menu-item-btn" onclick="closeOverlay('userMenuOverlay');openLogin()" style="text-align:center" id="umAdminLoginBtn">🔐 Entrar como Admin / Auditor</button>
+      </div>
+      <div id="umAdminLoggedIn" style="display:none">
+        <button class="menu-item-btn" onclick="goToAdminOrAuditorPanel()" style="text-align:center;font-weight:700" id="umGoToAdminPanel"></button>
+        <button class="btn-cancel" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red)" onclick="logoutAdminFromIdentityMenu()" id="umAdminLogoutBtn">Cerrar sesión administrativa</button>
+      </div>
+
+      <button class="btn-cancel" style="width:100%;margin-top:16px" onclick="closeOverlay('userMenuOverlay')" id="umCloseBtn">Cerrar</button>
     </div>
   </div>
 </div>
@@ -1201,6 +1218,7 @@ function skipOnboarding(){
 }
 
 const UI_STRINGS_EN = {
+  "Identificarme":"Sign in",
   "Buscar lugar o departamento...":"Search for a place or department...",
   "🎲 Sorpréndeme":"🎲 Surprise me",
   "📅 Eventos":"📅 Events",
@@ -1465,17 +1483,60 @@ function checkEmailLinkSignIn(){
 }
 
 
-function openUserMenu(){
-  if(!currentUser) return;
+function openIdentityMenu(){
   const en = currentLang==="en";
-  document.getElementById("umName").textContent = currentUser.name;
-  document.getElementById("umEmail").textContent = currentUser.email
-    ? (en?"Signed in with ":"Identificado con ")+currentUser.email
-    : (en?"Signed in on this device":"Identificado en este dispositivo");
-  const unlockedCount = ACHIEVEMENTS.filter(a=>a.check()).length;
-  document.getElementById("umAchSummary").textContent = `🏅 ${unlockedCount}/${ACHIEVEMENTS.length} ${en?"achievements unlocked":"logros desbloqueados"}`;
-  document.getElementById("umShareAch").textContent = en?"📤 Share my level":"📤 Compartir mi nivel";
+
+  // Sección visitante (correo)
+  if(currentUser){
+    document.getElementById("umName").textContent = currentUser.name;
+    document.getElementById("umEmail").textContent = currentUser.email
+      ? (en?"Signed in with ":"Identificado con ")+currentUser.email
+      : (en?"Signed in on this device":"Identificado en este dispositivo");
+    const unlockedCount = ACHIEVEMENTS.filter(a=>a.check()).length;
+    document.getElementById("umAchSummary").textContent = `🏅 ${unlockedCount}/${ACHIEVEMENTS.length} ${en?"achievements unlocked":"logros desbloqueados"}`;
+    document.getElementById("umShareAch").textContent = en?"📤 Share my level":"📤 Compartir mi nivel";
+    document.getElementById("umLogoutBtn").textContent = en?"Sign out as visitor":"Cerrar sesión de visitante";
+    document.getElementById("umNotIdentified").style.display = "none";
+    document.getElementById("umIdentifiedActions").style.display = "block";
+  } else {
+    document.getElementById("umName").textContent = en?"Not signed in yet":"Todavía no te identificaste";
+    document.getElementById("umEmail").textContent = en?"Sign in to comment, rate and unlock achievements":"Identificate para comentar, valorar y desbloquear logros";
+    document.getElementById("umIdentifyBtn").textContent = en?"✉️ Sign in with my email":"✉️ Identificarme con mi correo";
+    document.getElementById("umNotIdentified").style.display = "block";
+    document.getElementById("umIdentifiedActions").style.display = "none";
+  }
+
+  // Sección administrativa (Admin/Auditor)
+  document.getElementById("umAdminSectionTitle").textContent = en?"ADMINISTRATIVE ACCESS":"ACCESO ADMINISTRATIVO";
+  document.getElementById("umAdminLoginBtn").textContent = en?"🔐 Sign in as Admin / Auditor":"🔐 Entrar como Admin / Auditor";
+  if(isAdmin){
+    document.getElementById("umGoToAdminPanel").textContent = en?"⚙️ Go to Admin Panel":"⚙️ Ir al Panel de Administrador";
+    document.getElementById("umAdminLogoutBtn").textContent = en?"Sign out of Admin":"Cerrar sesión de Admin";
+    document.getElementById("umAdminNotLoggedIn").style.display = "none";
+    document.getElementById("umAdminLoggedIn").style.display = "block";
+  } else if(isAuditor){
+    document.getElementById("umGoToAdminPanel").textContent = en?"🔍 Go to Audit Panel":"🔍 Ir al Panel de Auditoría";
+    document.getElementById("umAdminLogoutBtn").textContent = en?"Sign out of Auditor":"Cerrar sesión de Auditor";
+    document.getElementById("umAdminNotLoggedIn").style.display = "none";
+    document.getElementById("umAdminLoggedIn").style.display = "block";
+  } else {
+    document.getElementById("umAdminNotLoggedIn").style.display = "block";
+    document.getElementById("umAdminLoggedIn").style.display = "none";
+  }
+  document.getElementById("umCloseBtn").textContent = en?"Close":"Cerrar";
+
   document.getElementById("userMenuOverlay").classList.add("open");
+}
+function goToAdminOrAuditorPanel(){
+  closeOverlay("userMenuOverlay");
+  if(isAdmin) openAdminMenu();
+  else if(isAuditor) openAuditorMenu();
+}
+function logoutAdminFromIdentityMenu(){
+  const en = currentLang==="en";
+  logout();
+  closeOverlay("userMenuOverlay");
+  showToast(en?"Signed out of administrative access":"Sesión administrativa cerrada");
 }
 function shareAchievementLevel(){
   const en = currentLang==="en";
@@ -2855,20 +2916,22 @@ function render(){
   const filtered=applySort(getFilteredPlaces());
   renderTopRated();
 
-  const adminHtml = isAdmin
-    ?`<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openAdminMenu()">⚙️ Admin</button>`
-    : isAuditor
-    ?`<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openAuditorMenu()">🔍 Auditor</button>`
-    :`<button class="btn-admin" onclick="openLogin()">🔐 Admin</button>`;
   const achLevel = currentUser ? getAchievementLevel() : "";
-  const userHtml = currentUser
-    ?`<button class="btn-admin" onclick="openUserMenu()">👤 ${currentUser.name}${achLevel?` ${achLevel}`:''}</button>`
-    :`<button class="btn-admin" onclick="openAuthModal()">👤 Identificarme</button>`;
+  let identityHtml;
+  if(isAdmin){
+    identityHtml = `<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openIdentityMenu()">⚙️ Admin</button>`;
+  } else if(isAuditor){
+    identityHtml = `<button class="btn-admin" style="background:rgba(255,255,255,0.28)" onclick="openIdentityMenu()">🔍 Auditor</button>`;
+  } else if(currentUser){
+    identityHtml = `<button class="btn-admin" onclick="openIdentityMenu()">👤 ${currentUser.name}${achLevel?` ${achLevel}`:''}</button>`;
+  } else {
+    identityHtml = `<button class="btn-admin" onclick="openIdentityMenu()">👤 ${t("Identificarme")}</button>`;
+  }
   const themeHtml = `<button class="btn-theme" onclick="toggleTheme()" title="Cambiar tema" aria-label="Cambiar tema claro/oscuro">${getEffectiveTheme()==="dark"?"☀️":"🌙"}</button>`;
   const itinBtnHtml = `<button class="btn-theme" style="position:relative" onclick="openItinerary()" title="Mi itinerario" aria-label="Mi itinerario">🗺️${itinerary.length?`<span class="itin-badge">${itinerary.length}</span>`:''}</button>`;
   const newCount = getNewItems().total;
   const notifBtnHtml = `<button class="btn-theme" style="position:relative" onclick="openNotifications()" title="Novedades" aria-label="Novedades">🔔${newCount?`<span class="itin-badge">${newCount}</span>`:''}</button>`;
-  document.getElementById("headerRight").innerHTML = `<div style="display:flex;gap:6px;align-items:center">${notifBtnHtml}${itinBtnHtml}${themeHtml}${userHtml}${adminHtml}</div>`;
+  document.getElementById("headerRight").innerHTML = `<div style="display:flex;gap:6px;align-items:center">${notifBtnHtml}${itinBtnHtml}${themeHtml}${identityHtml}</div>`;
 
   const fab=document.getElementById("fab");
   isAdmin?fab.classList.add("show"):fab.classList.remove("show");
