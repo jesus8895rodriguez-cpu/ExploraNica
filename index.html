@@ -482,9 +482,44 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openStatsPanel()">📊 Ver estadísticas</button>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openBusinessAdmin()">🏪 Negocios cercanos</button>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openPhotoAdmin()">📸 Fotos de visitantes</button>
+      <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');openSupportConfig()">📞 Configurar Soporte</button>
       <button class="menu-item-btn" onclick="closeOverlay('adminMenuOverlay');restoreDefaults()">↺ Restaurar lugares por defecto</button>
       <button class="menu-item-btn menu-item-danger" onclick="closeOverlay('adminMenuOverlay');logout()">🚪 Cerrar sesión</button>
       <button class="btn-cancel" style="width:100%" onclick="closeOverlay('adminMenuOverlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- SUPPORT CONFIG MODAL (admin) -->
+<div class="overlay edit-overlay" id="supportConfigOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <h2 style="margin:0">📞 Configurar Soporte</h2>
+        <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('supportConfigOverlay')">Cerrar</button>
+      </div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Números de WhatsApp para cada canal. Los que dejes vacíos no se van a mostrar a los visitantes.</p>
+      <div class="field"><label>🤝 Colaboración</label><input type="tel" id="sup-colaboracion" placeholder="Ej: 88881111"/></div>
+      <div class="field"><label>🛠️ Soporte técnico</label><input type="tel" id="sup-tecnico" placeholder="Ej: 88882222"/></div>
+      <div class="field"><label>📣 Área de comunicación</label><input type="tel" id="sup-comunicacion" placeholder="Ej: 88883333"/></div>
+      <div class="field"><label>🧭 Contacto con guías locales</label><input type="tel" id="sup-guias" placeholder="Ej: 88884444"/></div>
+      <div class="edit-actions">
+        <button class="btn-cancel" onclick="closeOverlay('supportConfigOverlay')">Cancelar</button>
+        <button class="btn-save" onclick="saveSupportConfigForm()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUPPORT MODAL (público) -->
+<div class="overlay edit-overlay" id="supportOverlay">
+  <div class="sheet edit-sheet">
+    <div class="sheet-body">
+      <div style="text-align:center;font-size:40px;margin-bottom:8px">📞</div>
+      <h2 id="supportTitle" style="text-align:center;margin-bottom:6px">Soporte y Contacto</h2>
+      <p id="supportSubtitle" style="text-align:center;font-size:13px;color:var(--text3);margin-bottom:20px">Elegí con quién te querés comunicar</p>
+      <div id="supportOptionsList"></div>
+      <button class="btn-cancel" style="width:100%;margin-top:10px" onclick="closeOverlay('supportOverlay')" id="supportCloseBtn">Cerrar</button>
     </div>
   </div>
 </div>
@@ -874,6 +909,7 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         <button class="btn-cancel" style="width:100%;margin-top:6px;color:var(--red);border-color:var(--red)" onclick="logoutAdminFromIdentityMenu()" id="umAdminLogoutBtn">Cerrar sesión administrativa</button>
       </div>
 
+      <button class="menu-item-btn" onclick="closeOverlay('userMenuOverlay');openSupport()" style="text-align:center" id="umSupportBtn">📞 Soporte y Contacto</button>
       <button class="btn-cancel" style="width:100%;margin-top:16px" onclick="closeOverlay('userMenuOverlay')" id="umCloseBtn">Cerrar</button>
     </div>
   </div>
@@ -1344,6 +1380,7 @@ const placesCollection = firebaseOk ? db.collection("exploranica_places") : null
 const ratingsDoc = firebaseOk ? db.collection("exploranica").doc("ratings") : null;
 const commentsDoc = firebaseOk ? db.collection("exploranica").doc("comments") : null;
 const eventsDoc = firebaseOk ? db.collection("exploranica").doc("events") : null;
+const supportDoc = firebaseOk ? db.collection("exploranica").doc("support") : null;
 const businessesCollection = firebaseOk ? db.collection("exploranica_negocios") : null;
 const visitorPhotosCollection = firebaseOk ? db.collection("exploranica_fotos_visitantes") : null;
 
@@ -1523,6 +1560,7 @@ function openIdentityMenu(){
     document.getElementById("umAdminNotLoggedIn").style.display = "block";
     document.getElementById("umAdminLoggedIn").style.display = "none";
   }
+  document.getElementById("umSupportBtn").textContent = en?"📞 Support and Contact":"📞 Soporte y Contacto";
   document.getElementById("umCloseBtn").textContent = en?"Close":"Cerrar";
 
   document.getElementById("userMenuOverlay").classList.add("open");
@@ -2137,6 +2175,56 @@ function openAdminMenu(){
 function openAuditorMenu(){
   document.getElementById("auditorMenuOverlay").classList.add("open");
 }
+function openSupportConfig(){
+  document.getElementById("sup-colaboracion").value = supportContacts.colaboracion || "";
+  document.getElementById("sup-tecnico").value = supportContacts.tecnico || "";
+  document.getElementById("sup-comunicacion").value = supportContacts.comunicacion || "";
+  document.getElementById("sup-guias").value = supportContacts.guias || "";
+  document.getElementById("supportConfigOverlay").classList.add("open");
+}
+function saveSupportConfigForm(){
+  supportContacts = {
+    colaboracion: document.getElementById("sup-colaboracion").value.trim(),
+    tecnico: document.getElementById("sup-tecnico").value.trim(),
+    comunicacion: document.getElementById("sup-comunicacion").value.trim(),
+    guias: document.getElementById("sup-guias").value.trim()
+  };
+  saveSupportContacts();
+  closeOverlay("supportConfigOverlay");
+  showToast("Contactos de soporte guardados ✅");
+}
+const SUPPORT_CHANNELS = [
+  {key:"colaboracion", icon:"🤝", es:"Colaboración", en:"Collaboration",
+   msg_es:"Hola, quiero conversar sobre una posible colaboración con ExploraNica.",
+   msg_en:"Hi, I'd like to talk about a possible collaboration with ExploraNica."},
+  {key:"tecnico", icon:"🛠️", es:"Soporte técnico", en:"Technical support",
+   msg_es:"Hola, quiero reportar un problema técnico o algo que subieron mal en ExploraNica.",
+   msg_en:"Hi, I'd like to report a technical issue or something uploaded incorrectly on ExploraNica."},
+  {key:"comunicacion", icon:"📣", es:"Área de comunicación", en:"Communications",
+   msg_es:"Hola, tengo una consulta para el área de comunicación de ExploraNica.",
+   msg_en:"Hi, I have a question for ExploraNica's communications team."},
+  {key:"guias", icon:"🧭", es:"Contacto con guías locales", en:"Local guide contact",
+   msg_es:"Hola, necesito ayuda para conectarme con un guía local — estoy perdido/a o no conozco bien la zona.",
+   msg_en:"Hi, I need help connecting with a local guide — I'm lost or unfamiliar with the area."}
+];
+function openSupport(){
+  const en = currentLang==="en";
+  document.getElementById("supportTitle").textContent = en?"Support and Contact":"Soporte y Contacto";
+  document.getElementById("supportSubtitle").textContent = en?"Choose who you'd like to reach":"Elegí con quién te querés comunicar";
+  document.getElementById("supportCloseBtn").textContent = en?"Close":"Cerrar";
+  const available = SUPPORT_CHANNELS.filter(c=>supportContacts[c.key] && supportContacts[c.key].trim());
+  const box = document.getElementById("supportOptionsList");
+  if(available.length===0){
+    box.innerHTML = `<p style="text-align:center;font-size:13px;color:var(--text3)">${en?"No contact channels configured yet.":"Todavía no hay canales de contacto configurados."}</p>`;
+  } else {
+    box.innerHTML = available.map(c=>{
+      const wa = formatWhatsAppNumber(supportContacts[c.key]);
+      const msg = en?c.msg_en:c.msg_es;
+      return `<a href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" class="sos-btn"><span>${c.icon}</span><span>${en?c.en:c.es}</span></a>`;
+    }).join("");
+  }
+  document.getElementById("supportOverlay").classList.add("open");
+}
 function openStatsPanel(){
   renderStatsPanel();
   document.getElementById("statsOverlay").classList.add("open");
@@ -2435,6 +2523,26 @@ function renderItineraryModal(){
 let events = [];
 let eventsReady = false;
 let editingEventId = null;
+let supportContacts = { colaboracion:"", tecnico:"", comunicacion:"", guias:"" };
+function loadSupportContacts(){
+  if(!supportDoc) return;
+  supportDoc.onSnapshot(snap=>{
+    if(snap.exists && snap.data()){
+      const d = snap.data();
+      supportContacts = {
+        colaboracion: d.colaboracion || "",
+        tecnico: d.tecnico || "",
+        comunicacion: d.comunicacion || "",
+        guias: d.guias || ""
+      };
+    }
+  }, err=>console.error("Error cargando contactos de soporte:", err));
+}
+function saveSupportContacts(){
+  const en = currentLang==="en";
+  if(!supportDoc){ showToast(en?"⚠️ Saved locally (offline)":"⚠️ Guardado localmente (sin conexión)"); return; }
+  supportDoc.set(supportContacts).catch(()=>showToast(en?"Error saving":"Error al guardar"));
+}
 function loadEvents(){
   if(!eventsDoc){
     events = JSON.parse(JSON.stringify(DEFAULT_EVENTS));
@@ -3439,6 +3547,7 @@ checkEmailLinkSignIn();
 loadFavorites();
 loadItinerary();
 loadEvents();
+loadSupportContacts();
 loadData();
 render();
 renderInstallBanner();
