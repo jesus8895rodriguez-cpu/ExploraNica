@@ -186,6 +186,10 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
 .sheet-close{position:sticky;top:10px;float:right;margin-right:10px;width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.45);color:#fff;border:none;font-size:16px;cursor:pointer;z-index:10;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
 .sos-fab{position:fixed;bottom:20px;right:16px;width:52px;height:52px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:22px;cursor:pointer;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center}
 .sos-btn{display:flex;align-items:center;gap:12px;width:100%;padding:13px 16px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-weight:700;margin-bottom:10px;text-decoration:none}
+.support-channel-group{margin-bottom:14px}
+.support-channel-title{font-size:13px;font-weight:800;color:var(--text2);margin-bottom:6px}
+.support-channel-buttons{display:flex;gap:8px}
+.support-half-btn{flex:1;margin-bottom:0;justify-content:center;font-size:12.5px;padding:11px 10px}
 .sos-btn span:first-child{font-size:20px}
 .sheet-close:active{background:rgba(0,0,0,0.65)}
 @keyframes slideup{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -503,11 +507,24 @@ mark.hl{background:var(--amber);color:#1a1a1a;padding:0 2px;border-radius:3px;fo
         <h2 style="margin:0">📞 Configurar Soporte</h2>
         <button class="btn-cancel" style="padding:6px 12px" onclick="closeOverlay('supportConfigOverlay')">Cerrar</button>
       </div>
-      <p style="font-size:13px;color:var(--text3);margin-bottom:16px">Números de WhatsApp para cada canal. Los que dejes vacíos no se van a mostrar a los visitantes.</p>
-      <div class="field"><label>🤝 Colaboración</label><input type="tel" id="sup-colaboracion" placeholder="Ej: 88881111"/></div>
-      <div class="field"><label>🛠️ Soporte técnico</label><input type="tel" id="sup-tecnico" placeholder="Ej: 88882222"/></div>
-      <div class="field"><label>📣 Área de comunicación</label><input type="tel" id="sup-comunicacion" placeholder="Ej: 88883333"/></div>
-      <div class="field"><label>🧭 Contacto con guías locales</label><input type="tel" id="sup-guias" placeholder="Ej: 88884444"/></div>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:16px">WhatsApp y/o correo para cada canal. Los campos que dejes vacíos no se van a mostrar a los visitantes.</p>
+
+      <h3 style="font-size:13px;margin-bottom:8px">🤝 Colaboración</h3>
+      <div class="field"><label>WhatsApp</label><input type="tel" id="sup-colaboracion-phone" placeholder="Ej: 88881111"/></div>
+      <div class="field"><label>Correo</label><input type="email" id="sup-colaboracion-email" placeholder="Ej: colaboracion@exploranica.com"/></div>
+
+      <h3 style="font-size:13px;margin:16px 0 8px">🛠️ Soporte técnico</h3>
+      <div class="field"><label>WhatsApp</label><input type="tel" id="sup-tecnico-phone" placeholder="Ej: 88882222"/></div>
+      <div class="field"><label>Correo</label><input type="email" id="sup-tecnico-email" placeholder="Ej: soporte@exploranica.com"/></div>
+
+      <h3 style="font-size:13px;margin:16px 0 8px">📣 Área de comunicación</h3>
+      <div class="field"><label>WhatsApp</label><input type="tel" id="sup-comunicacion-phone" placeholder="Ej: 88883333"/></div>
+      <div class="field"><label>Correo</label><input type="email" id="sup-comunicacion-email" placeholder="Ej: comunicacion@exploranica.com"/></div>
+
+      <h3 style="font-size:13px;margin:16px 0 8px">🧭 Contacto con guías locales</h3>
+      <div class="field"><label>WhatsApp</label><input type="tel" id="sup-guias-phone" placeholder="Ej: 88884444"/></div>
+      <div class="field"><label>Correo</label><input type="email" id="sup-guias-email" placeholder="Ej: guias@exploranica.com"/></div>
+
       <div class="edit-actions">
         <button class="btn-cancel" onclick="closeOverlay('supportConfigOverlay')">Cancelar</button>
         <button class="btn-save" onclick="saveSupportConfigForm()">Guardar</button>
@@ -2212,19 +2229,22 @@ function openAuditorMenu(){
   document.getElementById("auditorMenuOverlay").classList.add("open");
 }
 function openSupportConfig(){
-  document.getElementById("sup-colaboracion").value = supportContacts.colaboracion || "";
-  document.getElementById("sup-tecnico").value = supportContacts.tecnico || "";
-  document.getElementById("sup-comunicacion").value = supportContacts.comunicacion || "";
-  document.getElementById("sup-guias").value = supportContacts.guias || "";
+  ["colaboracion","tecnico","comunicacion","guias"].forEach(key=>{
+    document.getElementById(`sup-${key}-phone`).value = supportContacts[key].phone || "";
+    document.getElementById(`sup-${key}-email`).value = supportContacts[key].email || "";
+  });
   document.getElementById("supportConfigOverlay").classList.add("open");
 }
 function saveSupportConfigForm(){
-  supportContacts = {
-    colaboracion: document.getElementById("sup-colaboracion").value.trim(),
-    tecnico: document.getElementById("sup-tecnico").value.trim(),
-    comunicacion: document.getElementById("sup-comunicacion").value.trim(),
-    guias: document.getElementById("sup-guias").value.trim()
-  };
+  const keys = ["colaboracion","tecnico","comunicacion","guias"];
+  const newContacts = {};
+  keys.forEach(key=>{
+    newContacts[key] = {
+      phone: document.getElementById(`sup-${key}-phone`).value.trim(),
+      email: document.getElementById(`sup-${key}-email`).value.trim()
+    };
+  });
+  supportContacts = newContacts;
   saveSupportContacts();
   closeOverlay("supportConfigOverlay");
   showToast("Contactos de soporte guardados ✅");
@@ -2232,31 +2252,50 @@ function saveSupportConfigForm(){
 const SUPPORT_CHANNELS = [
   {key:"colaboracion", icon:"🤝", es:"Colaboración", en:"Collaboration",
    msg_es:"Hola, quiero conversar sobre una posible colaboración con ExploraNica.",
-   msg_en:"Hi, I'd like to talk about a possible collaboration with ExploraNica."},
+   msg_en:"Hi, I'd like to talk about a possible collaboration with ExploraNica.",
+   subject_es:"Colaboración con ExploraNica", subject_en:"Collaboration with ExploraNica"},
   {key:"tecnico", icon:"🛠️", es:"Soporte técnico", en:"Technical support",
    msg_es:"Hola, quiero reportar un problema técnico o algo que subieron mal en ExploraNica.",
-   msg_en:"Hi, I'd like to report a technical issue or something uploaded incorrectly on ExploraNica."},
+   msg_en:"Hi, I'd like to report a technical issue or something uploaded incorrectly on ExploraNica.",
+   subject_es:"Reporte técnico - ExploraNica", subject_en:"Technical report - ExploraNica"},
   {key:"comunicacion", icon:"📣", es:"Área de comunicación", en:"Communications",
    msg_es:"Hola, tengo una consulta para el área de comunicación de ExploraNica.",
-   msg_en:"Hi, I have a question for ExploraNica's communications team."},
+   msg_en:"Hi, I have a question for ExploraNica's communications team.",
+   subject_es:"Consulta - ExploraNica", subject_en:"Inquiry - ExploraNica"},
   {key:"guias", icon:"🧭", es:"Contacto con guías locales", en:"Local guide contact",
    msg_es:"Hola, necesito ayuda para conectarme con un guía local — estoy perdido/a o no conozco bien la zona.",
-   msg_en:"Hi, I need help connecting with a local guide — I'm lost or unfamiliar with the area."}
+   msg_en:"Hi, I need help connecting with a local guide — I'm lost or unfamiliar with the area.",
+   subject_es:"Contacto con guía local - ExploraNica", subject_en:"Local guide contact - ExploraNica"}
 ];
 function openSupport(){
   const en = currentLang==="en";
   document.getElementById("supportTitle").textContent = en?"Support and Contact":"Soporte y Contacto";
   document.getElementById("supportSubtitle").textContent = en?"Choose who you'd like to reach":"Elegí con quién te querés comunicar";
   document.getElementById("supportCloseBtn").textContent = en?"Close":"Cerrar";
-  const available = SUPPORT_CHANNELS.filter(c=>supportContacts[c.key] && supportContacts[c.key].trim());
+  const available = SUPPORT_CHANNELS.filter(c=>{
+    const contact = supportContacts[c.key];
+    return contact && ((contact.phone && contact.phone.trim()) || (contact.email && contact.email.trim()));
+  });
   const box = document.getElementById("supportOptionsList");
   if(available.length===0){
     box.innerHTML = `<p style="text-align:center;font-size:13px;color:var(--text3)">${en?"No contact channels configured yet.":"Todavía no hay canales de contacto configurados."}</p>`;
   } else {
     box.innerHTML = available.map(c=>{
-      const wa = formatWhatsAppNumber(supportContacts[c.key]);
+      const contact = supportContacts[c.key];
       const msg = en?c.msg_en:c.msg_es;
-      return `<a href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" class="sos-btn"><span>${c.icon}</span><span>${en?c.en:c.es}</span></a>`;
+      const subject = en?c.subject_en:c.subject_es;
+      let buttons = "";
+      if(contact.phone && contact.phone.trim()){
+        const wa = formatWhatsAppNumber(contact.phone);
+        buttons += `<a href="https://wa.me/${wa}?text=${encodeURIComponent(msg)}" target="_blank" rel="noopener" class="sos-btn support-half-btn"><span>💬</span><span>WhatsApp</span></a>`;
+      }
+      if(contact.email && contact.email.trim()){
+        buttons += `<a href="mailto:${contact.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(msg)}" class="sos-btn support-half-btn"><span>✉️</span><span>${en?"Email":"Correo"}</span></a>`;
+      }
+      return `<div class="support-channel-group">
+        <div class="support-channel-title">${c.icon} ${en?c.en:c.es}</div>
+        <div class="support-channel-buttons">${buttons}</div>
+      </div>`;
     }).join("");
   }
   document.getElementById("supportOverlay").classList.add("open");
@@ -2559,17 +2598,26 @@ function renderItineraryModal(){
 let events = [];
 let eventsReady = false;
 let editingEventId = null;
-let supportContacts = { colaboracion:"", tecnico:"", comunicacion:"", guias:"" };
+let supportContacts = {
+  colaboracion:{phone:"",email:""}, tecnico:{phone:"",email:""},
+  comunicacion:{phone:"",email:""}, guias:{phone:"",email:""}
+};
+function normalizeSupportChannel(val){
+  // Compatibilidad: la versión anterior guardaba solo un string (teléfono)
+  if(typeof val === "string") return {phone: val, email: ""};
+  if(val && typeof val === "object") return {phone: val.phone||"", email: val.email||""};
+  return {phone:"", email:""};
+}
 function loadSupportContacts(){
   if(!supportDoc) return;
   supportDoc.onSnapshot(snap=>{
     if(snap.exists && snap.data()){
       const d = snap.data();
       supportContacts = {
-        colaboracion: d.colaboracion || "",
-        tecnico: d.tecnico || "",
-        comunicacion: d.comunicacion || "",
-        guias: d.guias || ""
+        colaboracion: normalizeSupportChannel(d.colaboracion),
+        tecnico: normalizeSupportChannel(d.tecnico),
+        comunicacion: normalizeSupportChannel(d.comunicacion),
+        guias: normalizeSupportChannel(d.guias)
       };
     }
   }, err=>console.error("Error cargando contactos de soporte:", err));
